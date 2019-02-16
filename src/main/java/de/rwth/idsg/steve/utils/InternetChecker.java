@@ -38,7 +38,7 @@ public final class InternetChecker {
     private static final int CONNECT_TIMEOUT = 5_000;
 
     private static final List<String> HOST_LIST = Arrays.asList(
-            "https://treibhaus.informatik.rwth-aachen.de/heartbeat/",
+            // "https://treibhaus.informatik.rwth-aachen.de/heartbeat/",
             "https://github.com",
             "https://www.wikipedia.org",
             "https://www.google.com",
