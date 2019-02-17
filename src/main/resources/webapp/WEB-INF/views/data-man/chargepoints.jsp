@@ -84,7 +84,7 @@
                     <td><form:input path="description"/></td>
                 </tr>
                 <tr>
-                    <td>Ocpp Version:</td>
+                    <td>OCPP Version:</td>
                     <td><form:select path="ocppVersion">
                         <option value="" selected>All</option>
                         <form:options items="${ocppVersion}" itemLabel="value"/>
