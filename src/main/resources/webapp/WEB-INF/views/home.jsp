@@ -26,7 +26,7 @@
 		<span class="base formatNumber">${stats.numChargeBoxes}</span>
 	</a>
 	<a class="tileRow1" href="${ctxPath}/manager/ocppTags">
-		Number of<br>OCPP Tags
+		Number of<br>Tags
 		<span class="base formatNumber">${stats.numOcppTags}</span>
 	</a>
 	<a class="tileRow1" href="${ctxPath}/manager/users">

@@ -54,7 +54,7 @@
                     <li><a>DATA MANAGEMENT &raquo;</a>
                         <ul>
                             <li><a href="${ctxPath}/manager/chargepoints">CHARGE POINTS</a></li>
-                            <li><a href="${ctxPath}/manager/ocppTags">OCPP TAGS</a></li>
+                            <li><a href="${ctxPath}/manager/ocppTags">TAGS</a></li>
                             <li><a href="${ctxPath}/manager/users">USERS</a></li>
                             <li><a href="${ctxPath}/manager/chargingProfiles">CHARGING PROFILES</a></li>
                             <li><a href="${ctxPath}/manager/reservations">RESERVATIONS</a></li>
