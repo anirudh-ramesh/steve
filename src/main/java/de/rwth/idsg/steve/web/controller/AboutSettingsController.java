@@ -72,7 +72,7 @@ public class AboutSettingsController {
         model.addAttribute("logFile", logController.getLogFilePath());
         model.addAttribute("systemTime", DateTime.now());
         model.addAttribute("systemTimeZone", DateTimeZone.getDefault());
-        model.addAttribute("releaseReport", releaseCheckService.check());
+        // model.addAttribute("releaseReport", releaseCheckService.check());
         model.addAttribute("endpointInfo", EndpointInfo.INSTANCE);
         return "about";
     }
