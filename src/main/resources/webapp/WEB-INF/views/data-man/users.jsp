@@ -33,7 +33,7 @@
                 <td><form:input path="userPk"/></td>
             </tr>
             <tr>
-                <td>Ocpp ID Tag:</td>
+                <td>OCPP ID Tag:</td>
                 <td><form:input path="ocppIdTag"/></td>
             </tr>
             <tr>
@@ -57,7 +57,7 @@
         <thead>
             <tr>
                 <th data-sort="int">User ID</th>
-                <th data-sort="string">Ocpp ID Tag</th>
+                <th data-sort="string">OCPP ID Tag</th>
                 <th data-sort="string">Name</th>
                 <th data-sort="string">Phone</th>
                 <th data-sort="string">E-Mail</th>

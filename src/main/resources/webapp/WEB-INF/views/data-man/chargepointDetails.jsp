@@ -85,7 +85,7 @@
                         </td>
                     </tr>
                     <tr><td>Endpoint Address:</td><td>${cp.chargeBox.endpointAddress}</td></tr>
-                    <tr><td>Ocpp Protocol:</td><td>${cp.chargeBox.ocppProtocol}</td></tr>
+                    <tr><td>OCPP Protocol:</td><td>${cp.chargeBox.ocppProtocol}</td></tr>
                     <tr><td>Charge Point Vendor:</td><td>${cp.chargeBox.chargePointVendor}</td></tr>
                     <tr><td>Charge Point Model:</td><td>${cp.chargeBox.chargePointModel}</td></tr>
                     <tr><td>Charge Point Serial Number:</td><td>${cp.chargeBox.chargePointSerialNumber}</td></tr>
