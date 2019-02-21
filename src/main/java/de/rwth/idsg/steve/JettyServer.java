@@ -249,7 +249,8 @@ public class JettyServer {
      * Uses different APIs to find out the IP of this machine.
      */
     private static List<String> getPossibleIpAddresses() {
-        final String host = "treibhaus.informatik.rwth-aachen.de";
+        // final String host = "treibhaus.informatik.rwth-aachen.de";
+        final String host = "irasus.com";
         final List<String> ips = new ArrayList<>();
 
         try {
