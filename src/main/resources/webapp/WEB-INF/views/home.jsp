@@ -42,7 +42,7 @@
 		<span class="base formatNumber">${stats.numTransactions}</span>
 	</a>
 	<a class="tileRow1" href="${ctxPath}/manager/home/ocppJsonStatus">
-		Number of Connected<br>JSON Charge Points
+		Number of Connected<br>Charge Points (JSON)
 		<span class="baseTable">
 			<span class="baseRow">
 				<span class="baseCell">OCPP 1.2 :</span>
