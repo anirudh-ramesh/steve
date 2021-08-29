@@ -23,6 +23,7 @@ import de.rwth.idsg.steve.ocpp.ws.custom.WsSessionSelectStrategyEnum;
 import de.rwth.idsg.steve.utils.PropertiesFileLoader;
 import lombok.Builder;
 import lombok.Getter;
+import java.time.ZoneId;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -43,7 +44,7 @@ public enum SteveConfiguration {
     // Dummy service path
     private final String routerEndpointPath = "/CentralSystemService";
     // Time zone for the application and database connections
-    private final String timeZoneId = "UTC";  // or ZoneId.systemDefault().getId();
+    private final String timeZoneId = ZoneId.systemDefault().getId();  // or "UTC";
 
     // -------------------------------------------------------------------------
     // main.properties
