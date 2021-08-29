@@ -51,7 +51,7 @@
         <div class="container">
                 <ul class="navigation">
                     <li><a href="${ctxPath}/manager/home">HOME</a></li>
-                    <li><a href="${rqstURL}">X</a></li>
+                    <li><a href="http://${srvrName}:${GrafanaPort}">DASHBOARDS</a></li>
                     <li><a>DATA MANAGEMENT &raquo;</a>
                         <ul>
                             <li><a href="${ctxPath}/manager/chargepoints">CHARGE POINTS</a></li>
