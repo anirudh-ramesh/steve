@@ -79,7 +79,7 @@ public class Helpers {
         }
 
         return prefix + CONFIG.getJetty().getServerHost() + ":" + port
-                + CONFIG.getContextPath() + "/websocket/CentralSystemService/";
+                + CONFIG.getContextPath() + "/charger/";
     }
 
     public static ocpp.cs._2015._10.CentralSystemService getForOcpp16(String path) {

@@ -42,7 +42,7 @@ import static de.rwth.idsg.steve.utils.Helpers.getRandomString;
 @Slf4j
 public class ApplicationJsonTest {
 
-    private static final String PATH = "ws://localhost:8080/steve/websocket/CentralSystemService/";
+    private static final String PATH = "ws://localhost:8080/charger/";
     private static final OcppVersion VERSION = OcppVersion.V_16;
 
     private static final String REGISTERED_CHARGE_BOX_ID = __DatabasePreparer__.getRegisteredChargeBoxId();
