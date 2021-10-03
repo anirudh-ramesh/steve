@@ -21,8 +21,9 @@ package de.rwth.idsg.steve.service;
 import com.google.common.base.Strings;
 import de.rwth.idsg.steve.NotificationFeature;
 import de.rwth.idsg.steve.repository.dto.InsertTransactionParams;
-import de.rwth.idsg.steve.repository.dto.MailSettings;
 import de.rwth.idsg.steve.repository.dto.UpdateTransactionParams;
+import de.rwth.idsg.steve.repository.dto.MailSettings;
+import de.rwth.idsg.steve.repository.dto.WebhookSettings;
 import lombok.extern.slf4j.Slf4j;
 import ocpp.cs._2015._10.RegistrationStatus;
 import org.joda.time.DateTime;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.Timer;
 
 import static de.rwth.idsg.steve.NotificationFeature.OcppStationBooted;
 import static de.rwth.idsg.steve.NotificationFeature.OcppStationStatusFailure;
@@ -38,6 +40,15 @@ import static de.rwth.idsg.steve.NotificationFeature.OcppStationWebSocketDisconn
 import static de.rwth.idsg.steve.NotificationFeature.OcppTransactionStarted;
 import static de.rwth.idsg.steve.NotificationFeature.OcppTransactionEnded;
 import static java.lang.String.format;
+
+import ocpp.cs._2015._10.MeterValue;
+
+import java.util.ArrayList;
+import java.util.List;
+//import ocpp.cs._2015._10.SampledValue;
+
+// Added by AR on 23/03/2021
+import org.json.JSONObject;
 
 /**
  * @author Sevket Goekay <sevketgokay@gmail.com>
@@ -48,72 +59,192 @@ import static java.lang.String.format;
 public class NotificationService {
 
     @Autowired private MailService mailService;
+    @Autowired private WebhookService webhookService;
+    String registration_status_member;
 
     public void ocppStationBooted(String chargeBoxId, Optional<RegistrationStatus> status) {
-        if (isDisabled(OcppStationBooted)) {
-            return;
-        }
+        // if (isDisabled_email(OcppStationBooted)) {
+        //     return;
+        // }
 
-        String subject = format("Received boot notification from '%s'", chargeBoxId);
-        String body;
-        if (status.isPresent()) {
-            body = format("Charging station '%s' is in database and has registration status '%s'.", chargeBoxId, status.get().value());
-        } else {
-            body = format("Charging station '%s' is NOT in database", chargeBoxId);
-        }
+        // String subject = format("Received boot notification from '%s'", chargeBoxId);
+        // String body;
+        // String registration_status = "";
+        // if (status.isPresent()) {
+        //     registration_status = status.get().value();
+        //     body = format("Charging station '%s' is in database and has registration status '%s'.", chargeBoxId, registration_status);
+        // } else {
+        //     body = format("Charging station '%s' is NOT in database", chargeBoxId);
+        // }
 
-        mailService.sendAsync(subject, addTimestamp(body));
+        // System.out.print(body);
+        // registration_status_member = registration_status;
+
+        JSONObject bodyObject = new JSONObject();
+        // bodyObject.put("boot", 1);
+        // bodyObject.put("error", "No error");
+        // bodyObject.put("connection", "True");
+        // bodyObject.put("connectorId", 0);
+        // bodyObject.put("chargeBoxId", chargeBoxId);
+        // bodyObject.put("registration", registration_status);
+        bodyObject.put("charger", chargeBoxId);
+        bodyObject.put("payload", "boot");
+        bodyObject.put("version", "2.0.1");
+        bodyObject.put("iat", DateTime.now().toString());
+        webhookService.sendAsync("charger", bodyObject);
+
+        // mailService.sendAsync(subject, addTimestamp(body));
+    }
+
+    public void ocppHeartbeat(String chargeBoxId, String timestamp) {
+        JSONObject bodyObject = new JSONObject();
+        // bodyObject.put("heartbeat", 1);
+        // bodyObject.put("connection", "True");
+        // bodyObject.put("connectorId", 0);
+        // bodyObject.put("chargeBoxId", chargeBoxId);
+        // bodyObject.put("timestamp", timestamp);
+        bodyObject.put("charger", chargeBoxId);
+        bodyObject.put("iat", timestamp);
+        bodyObject.put("version", "2.0.1");
+        bodyObject.put("payload", "heartbeat");
+        webhookService.sendAsync("charger", bodyObject);
+    }
+
+    public void ocppDiagnostics(String chargeBoxId, String status) {
+        // JSONObject bodyObject = new JSONObject();
+        // bodyObject.put("diagnostics", 1);
+        // bodyObject.put("connection","True");
+        // bodyObject.put("connectorId","0");
+        // bodyObject.put("chargeBoxId",chargeBoxId);
+        // bodyObject.put("status",status);
+        // bodyObject.put("iat",DateTime.now().toString());
+        // webhookService.sendAsync("station", bodyObject);
+    }
+
+    public void ocppMetering(String chargeBoxId, int connectorId, List<MeterValue> values) //List<MeterValue> meterValue)   , int transactionId
+    {   
+        JSONObject bodyObject = new JSONObject();
+        bodyObject.put("version", "2.0.1");
+        bodyObject.put("payload", "meter");
+        bodyObject.put("connector",connectorId);
+        bodyObject.put("charger",chargeBoxId);
+        bodyObject.put("iat",DateTime.now().toString());
+        for (int i = 0; i < values.get(0).getSampledValue().size(); ++i) {
+            if (values.get(0).getSampledValue().get(i).getMeasurand().toString().equals("ENERGY_ACTIVE_IMPORT_REGISTER")) {
+                bodyObject.put("meter", values.get(0).getSampledValue().get(i).getValue().toString());
+                break;
+            }
+        }
+        webhookService.sendAsync("transaction", bodyObject);
     }
 
     public void ocppStationWebSocketConnected(String chargeBoxId) {
-        if (isDisabled(OcppStationWebSocketConnected)) {
-            return;
-        }
+        // if (isDisabled_email(OcppStationWebSocketConnected)) {
+        //     return;
+        // }
 
-        String subject = format("Connected to JSON charging station '%s'", chargeBoxId);
+        // String subject = format("Connected to JSON charging station '%s'", chargeBoxId);
 
-        mailService.sendAsync(subject, addTimestamp(""));
+        JSONObject bodyObject = new JSONObject();
+        // bodyObject.put("socketConnect", 1);
+        // bodyObject.put("error", "No error");
+        // bodyObject.put("registration", registration_status_member);
+        // bodyObject.put("connection", "True");
+        // bodyObject.put("connectorId", 0);
+        // bodyObject.put("chargeBoxId", chargeBoxId);
+        bodyObject.put("version", "2.0.1");
+        bodyObject.put("charger", chargeBoxId);
+        bodyObject.put("payload", "connect");
+        bodyObject.put("iat", DateTime.now().toString());
+        webhookService.sendAsync("charger", bodyObject);
+        
+        // mailService.sendAsync(subject, addTimestamp(""));
     }
 
     public void ocppStationWebSocketDisconnected(String chargeBoxId) {
-        if (isDisabled(OcppStationWebSocketDisconnected)) {
-            return;
-        }
+        // if (isDisabled_email(OcppStationWebSocketDisconnected)) {
+        //     return;
+        // }
 
-        String subject = format("Disconnected from JSON charging station '%s'", chargeBoxId);
+        // String subject = format("Disconnected from JSON charging station '%s'", chargeBoxId);
 
-        mailService.sendAsync(subject, addTimestamp(""));
+        JSONObject bodyObject = new JSONObject();
+        // bodyObject.put("socketDisconnect", 1);
+        // bodyObject.put("error", "No error");
+        // bodyObject.put("registration", registration_status_member);
+        // bodyObject.put("connectorId", 0);
+        // bodyObject.put("chargeBoxId", chargeBoxId);
+        // bodyObject.put("connection", "False");
+        bodyObject.put("version", "2.0.1");
+        bodyObject.put("charger", chargeBoxId);
+        bodyObject.put("payload", "disconnect");
+        bodyObject.put("iat", DateTime.now().toString());
+        webhookService.sendAsync("charger", bodyObject);
+
+        // mailService.sendAsync(subject, addTimestamp(""));
     }
 
     public void ocppStationStatusFailure(String chargeBoxId, int connectorId, String errorCode) {
-        if (isDisabled(OcppStationStatusFailure)) {
-            return;
-        }
+        // if (isDisabled_email(OcppStationStatusFailure)) {
+        //     return;
+        // }
 
-        String subject = format("Connector '%s' of charging station '%s' is FAULTED", connectorId, chargeBoxId);
-        String body = format("Status Error Code: '%s'", errorCode);
+        // String subject = format("Connector '%s' of charging station '%s' is FAULTED", connectorId, chargeBoxId);
+        // String body = format("Status Error Code: '%s'", errorCode);
 
-        mailService.sendAsync(subject, addTimestamp(body));
+        // JSONObject bodyObject = new JSONObject();
+        // bodyObject.put("version", "2.0.1");
+        // bodyObject.put("statusFailure", 1);
+        // bodyObject.put("error", errorCode);
+        // bodyObject.put("registration", registration_status_member);
+        // bodyObject.put("connectorId", connectorId);
+        // bodyObject.put("chargeBoxId", chargeBoxId);
+        // bodyObject.put("connection", "False");
+        // bodyObject.put("iat", DateTime.now().toString());
+        // webhookService.sendAsync("station", bodyObject);
+
+        // mailService.sendAsync(subject, addTimestamp(body));
     }
 
     public void ocppTransactionStarted(int transactionId, InsertTransactionParams params) {
-        if (isDisabled(OcppTransactionStarted)) {
-            return;
-        }
+        // if (isDisabled_email(OcppTransactionStarted)) {
+        //     return;
+        // }
 
-        String subject = format("Transaction '%s' has started on charging station '%s' on connector '%s'", transactionId, params.getChargeBoxId(), params.getConnectorId());
+        // String subject = format("Transaction '%s' has started on charging station '%s' on connector '%s'", transactionId, params.getChargeBoxId(), params.getConnectorId());
 
-        mailService.sendAsync(subject, addTimestamp(createContent(params)));
+        JSONObject bodyObject = new JSONObject();
+        bodyObject.put("version", "2.0.1");
+        bodyObject.put("payload", "start");
+        bodyObject.put("charger", params.getChargeBoxId());
+        bodyObject.put("connector", params.getConnectorId());
+        bodyObject.put("transaction", transactionId);
+        bodyObject.put("tag", params.getIdTag());
+        bodyObject.put("meter", params.getStartMeterValue());
+        bodyObject.put("iat", params.getStartTimestamp().toString());
+        webhookService.sendAsync("transaction", bodyObject);
+
+        // mailService.sendAsync(subject, addTimestamp(createContent(params)));
     }
 
     public void ocppTransactionEnded(UpdateTransactionParams params) {
-       if (isDisabled(OcppTransactionEnded)) {
-            return;
-        }
+       // if (isDisabled_email(OcppTransactionEnded)) {
+       //      return;
+       //  }
 
-        String subject = format("Transaction '%s' has ended on charging station '%s'", params.getTransactionId(), params.getChargeBoxId());
+        // String subject = format("Transaction '%s' has ended on charging station '%s'", params.getTransactionId(), params.getChargeBoxId());
 
-        mailService.sendAsync(subject, addTimestamp(createContent(params)));
+        JSONObject bodyObject = new JSONObject();
+        bodyObject.put("version", "2.0.1");
+        bodyObject.put("payload", "stop");
+        bodyObject.put("charger", params.getChargeBoxId());
+        bodyObject.put("transaction", params.getTransactionId());
+        bodyObject.put("iat", params.getStopTimestamp().toString());
+        bodyObject.put("reason", params.getStopReason());
+        bodyObject.put("meter", params.getStopMeterValue());
+        webhookService.sendAsync("transaction", bodyObject);
+
+        // mailService.sendAsync(subject, addTimestamp(createContent(params)));
     }
 
     // -------------------------------------------------------------------------
@@ -147,7 +278,18 @@ public class NotificationService {
     }
 
 
-    private boolean isDisabled(NotificationFeature f) {
+    private boolean isDisabled_email(NotificationFeature f) {
+        MailSettings settings = mailService.getSettings();
+
+        boolean isEnabled = settings.isEnabled()
+                && settings.getEnabledFeatures().contains(f)
+                && !settings.getRecipients().isEmpty();
+
+        return !isEnabled;
+    }
+
+
+    private boolean isDisabled_webhook(NotificationFeature f) {
         MailSettings settings = mailService.getSettings();
 
         boolean isEnabled = settings.isEnabled()

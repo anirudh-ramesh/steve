@@ -20,7 +20,7 @@ package de.rwth.idsg.steve.web.controller;
 
 import de.rwth.idsg.steve.NotificationFeature;
 import de.rwth.idsg.steve.repository.GenericRepository;
-import de.rwth.idsg.steve.repository.SettingsRepository;
+import de.rwth.idsg.steve.repository.SteveSettingsRepository;
 import de.rwth.idsg.steve.service.MailService;
 import de.rwth.idsg.steve.service.ReleaseCheckService;
 import de.rwth.idsg.steve.web.dto.EndpointInfo;
@@ -50,7 +50,7 @@ public class AboutSettingsController {
 
     @Autowired private GenericRepository genericRepository;
     @Autowired private LogController logController;
-    @Autowired private SettingsRepository settingsRepository;
+    @Autowired private SteveSettingsRepository settingsRepository;
     @Autowired private MailService mailService;
     @Autowired private ReleaseCheckService releaseCheckService;
 
