@@ -20,7 +20,7 @@ package de.rwth.idsg.steve.service;
 
 import de.rwth.idsg.steve.ocpp.OcppProtocol;
 import de.rwth.idsg.steve.repository.OcppServerRepository;
-import de.rwth.idsg.steve.repository.SettingsRepository;
+import de.rwth.idsg.steve.repository.SteveSettingsRepository;
 import de.rwth.idsg.steve.repository.dto.InsertConnectorStatusParams;
 import de.rwth.idsg.steve.repository.dto.InsertTransactionParams;
 import de.rwth.idsg.steve.repository.dto.UpdateChargeboxParams;
@@ -67,7 +67,7 @@ import java.util.Optional;
 public class CentralSystemService16_Service {
 
     @Autowired private OcppServerRepository ocppServerRepository;
-    @Autowired private SettingsRepository settingsRepository;
+    @Autowired private SteveSettingsRepository settingsRepository;
 
     @Autowired private OcppTagService ocppTagService;
     @Autowired private NotificationService notificationService;
@@ -153,6 +153,8 @@ public class CentralSystemService16_Service {
                 parameters.getTransactionId()
         );
 
+        notificationService.ocppMetering(chargeBoxIdentity, parameters.getConnectorId(), parameters.getMeterValue()); //, parameters.getTransactionId()
+
         return new MeterValuesResponse();
     }
 
@@ -160,6 +162,7 @@ public class CentralSystemService16_Service {
             DiagnosticsStatusNotificationRequest parameters, String chargeBoxIdentity) {
         String status = parameters.getStatus().value();
         ocppServerRepository.updateChargeboxDiagnosticsStatus(chargeBoxIdentity, status);
+        notificationService.ocppDiagnostics(chargeBoxIdentity, status);
         return new DiagnosticsStatusNotificationResponse();
     }
 
@@ -225,6 +228,8 @@ public class CentralSystemService16_Service {
     public HeartbeatResponse heartbeat(HeartbeatRequest parameters, String chargeBoxIdentity) {
         DateTime now = DateTime.now();
         ocppServerRepository.updateChargeboxHeartbeat(chargeBoxIdentity, now);
+
+        notificationService.ocppHeartbeat(chargeBoxIdentity, now.toString());
 
         return new HeartbeatResponse().withCurrentTime(now);
     }

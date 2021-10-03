@@ -36,7 +36,7 @@ import de.rwth.idsg.steve.web.dto.TransactionQueryForm;
 import jooq.steve.db.DefaultCatalog;
 import jooq.steve.db.tables.OcppTagActivity;
 import jooq.steve.db.tables.SchemaVersion;
-import jooq.steve.db.tables.Settings;
+import jooq.steve.db.tables.SteveSettings;
 import jooq.steve.db.tables.records.OcppTagActivityRecord;
 import jooq.steve.db.tables.records.TransactionRecord;
 import org.joda.time.DateTime;
@@ -153,7 +153,7 @@ public class __DatabasePreparer__ {
     private static void truncateTables(DSLContext ctx) {
         Set<Table<?>> skipList = Sets.newHashSet(
                 SchemaVersion.SCHEMA_VERSION,
-                Settings.SETTINGS,
+                SteveSettings.STEVE_SETTINGS,
                 OcppTagActivity.OCPP_TAG_ACTIVITY, // only a view
                 TRANSACTION // only a view
         );

@@ -18,6 +18,7 @@
  */
 package de.rwth.idsg.steve.repository;
 
+import de.rwth.idsg.steve.repository.dto.WebhookSettings;
 import de.rwth.idsg.steve.repository.dto.MailSettings;
 import de.rwth.idsg.steve.web.dto.SettingsForm;
 
@@ -25,9 +26,10 @@ import de.rwth.idsg.steve.web.dto.SettingsForm;
  * @author Sevket Goekay <sevketgokay@gmail.com>
  * @since 06.11.2015
  */
-public interface SettingsRepository {
+public interface SteveSettingsRepository {
     SettingsForm getForm();
     MailSettings getMailSettings();
+    WebhookSettings getWebhookSettings();
     int getHeartbeatIntervalInSeconds();
     int getHoursToExpire();
     void update(SettingsForm settingsForm);

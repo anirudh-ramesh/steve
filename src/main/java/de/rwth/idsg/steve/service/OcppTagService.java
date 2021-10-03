@@ -21,7 +21,7 @@ package de.rwth.idsg.steve.service;
 import com.google.common.base.Strings;
 import de.rwth.idsg.steve.SteveException;
 import de.rwth.idsg.steve.repository.OcppTagRepository;
-import de.rwth.idsg.steve.repository.SettingsRepository;
+import de.rwth.idsg.steve.repository.SteveSettingsRepository;
 import de.rwth.idsg.steve.service.dto.UnidentifiedIncomingObject;
 import jooq.steve.db.tables.records.OcppTagActivityRecord;
 import lombok.AccessLevel;
@@ -47,7 +47,7 @@ import java.util.function.Supplier;
 @Service
 public class OcppTagService {
 
-    @Autowired private SettingsRepository settingsRepository;
+    @Autowired private SteveSettingsRepository settingsRepository;
     @Autowired private OcppTagRepository ocppTagRepository;
 
     private final UnidentifiedIncomingObjectService invalidOcppTagService = new UnidentifiedIncomingObjectService(1000);

@@ -20,7 +20,7 @@ package de.rwth.idsg.steve.service;
 
 import com.google.common.base.Strings;
 import de.rwth.idsg.steve.SteveException;
-import de.rwth.idsg.steve.repository.SettingsRepository;
+import de.rwth.idsg.steve.repository.SteveSettingsRepository;
 import de.rwth.idsg.steve.repository.dto.MailSettings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +49,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Service
 public class MailService {
 
-    @Autowired private SettingsRepository settingsRepository;
+    @Autowired private SteveSettingsRepository settingsRepository;
     @Autowired private ScheduledExecutorService executorService;
 
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
