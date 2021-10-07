@@ -70,7 +70,7 @@ public abstract class CommunicationTask<S extends ChargePointSelection, RESPONSE
     private final ArrayList<OcppCallback<RESPONSE>> callbackList = new ArrayList<>(2);
 
     public CommunicationTask(OcppVersion ocppVersion, S params) {
-        this(ocppVersion, params, TaskOrigin.INTERNAL, "SteVe");
+        this(ocppVersion, params, TaskOrigin.INTERNAL, "Irasus EVCMS");
     }
 
     /**

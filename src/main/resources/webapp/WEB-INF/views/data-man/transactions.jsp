@@ -32,7 +32,7 @@
 Transactions
 <a class="tooltip" href="#"><img src="${ctxPath}/static/images/info.png" style="vertical-align:middle">
 <span>If stop date/time and stop value are empty, this means that a transaction is still active
-(i.e. it has started but not stopped yet or the charging station did not inform SteVe about the stopped transaction yet).</span>
+(i.e. it has started but not stopped yet or the charging station did not inform Irasus EVCMS about the stopped transaction yet).</span>
 </a>
 </span></section>
     <form:form action="${ctxPath}/manager/transactions/query" method="get" modelAttribute="params">

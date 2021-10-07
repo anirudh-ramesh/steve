@@ -101,7 +101,7 @@ public class MailService {
         MailSettings settings = getSettings();
 
         Message mail = new MimeMessage(session);
-        mail.setSubject("[SteVe] " + subject);
+        mail.setSubject("[Irasus EVCMS] " + subject);
         mail.setContent(body, "text/plain");
         mail.setFrom(new InternetAddress(settings.getFrom()));
 
