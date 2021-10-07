@@ -20,7 +20,7 @@
 --%>
 <%@ include file="00-header.jsp" %>
 <div class="content">
-<section><span>About SteVe</span></section>
+<section><span>About Irasus EVCMS</span></section>
 <!--     <c:if test="${releaseReport.moreRecent}">
         <div class="info">A new version (${releaseReport.githubVersion}) is available!
             <a target="_blank" href="${releaseReport.htmlUrl}">Release Info</a> -

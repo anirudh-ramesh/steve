@@ -37,7 +37,7 @@
             <form:input path="heartbeat"/>
         </td></tr>
         <tr><td><i>
-            The time interval in <b>minutes</b> for how often a charge point <br> should request the current time from SteVe.
+            The time interval in <b>minutes</b> for how often a charge point <br> should request the current time from Irasus EVCMS.
         </i></td><td></td></tr>
         <tr><td>Expiration:</td><td>
             <form:input path="expiration"/>
