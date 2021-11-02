@@ -3,6 +3,7 @@ package de.rwth.idsg.steve.web.controller;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.rwth.idsg.steve.SteveException;
 import de.rwth.idsg.steve.ocpp.CommunicationTask;
 import de.rwth.idsg.steve.ocpp.OcppTransport;
 import de.rwth.idsg.steve.ocpp.RequestResult;
@@ -44,6 +45,8 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import de.rwth.idsg.steve.web.configuration.SwaggerConfig;
+
+// TODO: Handle DataAccessException when MySQL is down
 
 /**
  * @author Anirudh Ramesh <anirudh@irasus.com>
@@ -87,7 +90,9 @@ public class APIController {
     return new HashMap() {{put("result", "failed"); put("reason", "Required parameter missing");}};
     }
 
-    @ApiOperation(httpMethod = "GET", value = "Start a charging transaction", notes = "", tags = {"transaction", "start", "2.0.0-rc1"})
+// TODO: Replace getTokenList
+
+    @ApiOperation(httpMethod = "GET", value = "Start a charging transaction", notes = "", tags = {"transaction", "start", "2.0.0-rc2"})
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "OK"),
         @ApiResponse(code = 403, message = "Forbidden"),
@@ -96,7 +101,8 @@ public class APIController {
     })
     @GetMapping(value = "/transaction/start")
     public void start_transaction(@RequestParam(name = "charger") String _charger, @RequestParam(name = "tag", defaultValue = "root") String _tag, @RequestParam(name = "connector", defaultValue = "1") String _connector, HttpServletResponse response) throws IOException {
-        JSONObject response_payload_object = new JSONObject();
+        JSONObject response_object = new JSONObject();
+        response_object.put("version", "2.0.0-rc2");
         try {
             if (!getTokenList(_tag).isEmpty()) {
                 RemoteStartTransactionParams params = new RemoteStartTransactionParams();
@@ -111,45 +117,45 @@ public class APIController {
                 RequestResult result = (RequestResult) task.getResultMap().get(_charger);
                 if (result.getResponse() == null) {
                     response.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
-                    response_payload_object.put("charger", _charger);
-                    response_payload_object.put("connector", _connector);
-                    response_payload_object.put("tag", _tag);
-                    response_payload_object.put("response", "Charger disconnected from the CMS");
-                    writeOutput(response, response_payload_object.toString());
+                    response_object.put("charger", _charger);
+                    response_object.put("connector", _connector);
+                    response_object.put("tag", _tag);
+                    response_object.put("response", "Charger disconnected from the EVCMS");
+                    writeOutput(response, response_object.toString());
                 } else if (!result.getResponse().equals("Accepted")) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response_payload_object.put("charger", _charger);
-                    response_payload_object.put("connector", _connector);
-                    response_payload_object.put("tag", _tag);
-                    response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()).replace("\"", ""));
-                    writeOutput(response, response_payload_object.toString());
+                    response_object.put("charger", _charger);
+                    response_object.put("connector", _connector);
+                    response_object.put("tag", _tag);
+                    response_object.put("response", objectMapper.writeValueAsString(result.getResponse()).replace("\"", ""));
+                    writeOutput(response, response_object.toString());
                 } else {
                     response.setStatus(HttpServletResponse.SC_OK);
-                    response_payload_object.put("charger", _charger);
-                    response_payload_object.put("connector", _connector);
-                    response_payload_object.put("tag", _tag);
-                    response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()).replace("\"", ""));
-                    writeOutput(response, response_payload_object.toString());
+                    response_object.put("charger", _charger);
+                    response_object.put("connector", _connector);
+                    response_object.put("tag", _tag);
+                    response_object.put("response", objectMapper.writeValueAsString(result.getResponse()).replace("\"", ""));
+                    writeOutput(response, response_object.toString());
                 }
             }
         } catch (NullPointerException nullPointerException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response_payload_object.put("charger", _charger);
-            response_payload_object.put("connector", _connector);
-            response_payload_object.put("tag", _tag);
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            response_object.put("charger", _charger);
+            response_object.put("connector", _connector);
+            response_object.put("tag", _tag);
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
         } catch (NumberFormatException numberFormatException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response_payload_object.put("charger", _charger);
-            response_payload_object.put("connector", _connector);
-            response_payload_object.put("tag", _tag);
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            response_object.put("charger", _charger);
+            response_object.put("connector", _connector);
+            response_object.put("tag", _tag);
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
         }
     }
 
-    @ApiOperation(httpMethod = "GET", value = "Stop a charging transaction", notes = "", tags = {"transaction", "stop", "2.0.0-rc1"})
+    @ApiOperation(httpMethod = "GET", value = "Stop a charging transaction", notes = "", tags = {"transaction", "stop", "2.0.0-rc2"})
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "OK"),
         @ApiResponse(code = 403, message = "Forbidden"),
@@ -158,11 +164,12 @@ public class APIController {
     })
     @GetMapping(value = "/transaction/stop")
     public void stop_transaction(@RequestParam(name = "transaction") String _transaction, HttpServletResponse response) throws IOException {
-        JSONObject response_payload_object = new JSONObject();
+        JSONObject response_object = new JSONObject();
+        response_object.put("version", "2.0.0-rc2");
         try {
-            Transaction thisTx = transactionRepository.getDetails(Integer.parseInt(_transaction)).getTransaction();
-            String _charger = thisTx.getChargeBoxId();
-            Integer _connector = thisTx.getConnectorId();
+            Transaction transaction = transactionRepository.getDetails(Integer.parseInt(_transaction)).getTransaction();
+            String _charger = transaction.getChargeBoxId();
+            Integer _connector = transaction.getConnectorId();
             RemoteStopTransactionParams params = new RemoteStopTransactionParams();
             List<Integer> transactions = transactionRepository.getActiveTransactionIds(_charger);
             if (transactions.size() > 0) {
@@ -177,179 +184,299 @@ public class APIController {
                         RequestResult result = (RequestResult) task.getResultMap().get(_charger);
                         transactionStopService.stop(transactions);
                         response.setStatus(HttpServletResponse.SC_OK);
-                        response_payload_object.put("charger", _charger);
-                        response_payload_object.put("connector", _connector.toString());
-                        response_payload_object.put("transaction", _transaction);
-                        response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()).replace("\"", ""));
-                        writeOutput(response, response_payload_object.toString());
+                        response_object.put("charger", _charger);
+                        response_object.put("connector", _connector.toString());
+                        response_object.put("transaction", _transaction);
+                        response_object.put("response", objectMapper.writeValueAsString(result.getResponse()).replace("\"", ""));
+                        writeOutput(response, response_object.toString());
                     } else {
                         response.setStatus(HttpServletResponse.SC_CONFLICT);
-                        response_payload_object.put("charger", _charger);
-                        response_payload_object.put("connector", _connector.toString());
-                        response_payload_object.put("transaction", _transaction);
-                        response_payload_object.put("response", "Transaction properties mismatched");
-                        writeOutput(response, response_payload_object.toString());
+                        response_object.put("charger", _charger);
+                        response_object.put("connector", _connector.toString());
+                        response_object.put("transaction", _transaction);
+                        response_object.put("response", "Transaction properties mismatched");
+                        writeOutput(response, response_object.toString());
                 }
             } else {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
-                response_payload_object.put("charger", _charger);
-                response_payload_object.put("connector", _connector.toString());
-                response_payload_object.put("transaction", _transaction);
-                response_payload_object.put("response", "Transactions inactive");
-                writeOutput(response, response_payload_object.toString());
+                response_object.put("charger", _charger);
+                response_object.put("connector", _connector.toString());
+                response_object.put("transaction", _transaction);
+                response_object.put("response", "Transactions inactive");
+                writeOutput(response, response_object.toString());
             }
         } catch (NullPointerException nullPointerException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response_payload_object.put("charger", "");
-            response_payload_object.put("connector", "");
-            response_payload_object.put("transaction", _transaction);
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            response_object.put("charger", "");
+            response_object.put("connector", "");
+            response_object.put("transaction", _transaction);
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
         } catch (NumberFormatException numberFormatException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response_payload_object.put("charger", "");
-            response_payload_object.put("connector", "");
-            response_payload_object.put("transaction", _transaction);
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            response_object.put("charger", "");
+            response_object.put("connector", "");
+            response_object.put("transaction", _transaction);
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
         }
     }
 
-    @ApiOperation(httpMethod = "GET", value = "View the properties of a charging transaction", notes = "", tags = {"transaction", "properties", "2.0.0-rc1"})
+    @ApiOperation(httpMethod = "GET", value = "View the properties of a charging transaction", notes = "", tags = {"transaction", "properties", "2.0.0-rc2"})
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "OK"),
         @ApiResponse(code = 403, message = "Forbidden"),
         @ApiResponse(code = 500, message = "Internal Error")
     })
     @GetMapping(value = "/transaction")
-    public void get_transaction(@ApiParam(required = true, value = "Serial Number of the transaction; '*' for all, '~' for active") @RequestParam(name = "transaction") String _transaction, HttpServletResponse response) throws IOException {
-        JSONObject response_payload_object = new JSONObject();
+    public void get_transaction(@ApiParam(required = true, value = "Serial Number of the transaction; '*' for all, '~' for active") @RequestParam(name = "transaction") String _transaction, @ApiParam(allowableValues = "array, object", defaultValue = "object", required = false, value = "Format of the response when returning multiple entries—JSON Array/Object") @RequestParam(name = "response", defaultValue = "object") String _response, HttpServletResponse response) throws IOException {
+        JSONArray response_array = new JSONArray();
+        JSONObject response_object = new JSONObject();
+        response_object.put("version", "2.0.0-rc2");
         if (_transaction.equals("*")) {
-            // JSONArray transaction_array = new JSONArray();
-            // List<String> transactions = new ArrayList<>();
-            // TransactionQueryForm params = new TransactionQueryForm();
-            // params.setType(TransactionQueryForm.QueryType.ALL);
-            // transactions = transactionRepository.getTransactions(params).stream().collect(Collectors.toList());
-            // for (int transaction = 0; transaction < transactions.size(); ++transaction) {
-            //     transaction_array.put(transactions.get(transaction));
-            // }
-            // response.setStatus(HttpServletResponse.SC_OK);
-            // writeOutput(response, transaction_array.toString());
-        } else if (_transaction.equals("~")) {
+            TransactionQueryForm params = new TransactionQueryForm();
+            params.setType(TransactionQueryForm.QueryType.ALL);
+            if (_response.equals("object")) {
+                transactionRepository.getTransactions(params).stream().sorted(Comparator.comparingInt(Transaction::getId)).parallel().forEach(transaction -> {
+                    JSONObject transactions_object = new JSONObject();
+                    transactions_object.put("version", "2.0.0-rc2");
+                    transactions_object.put("transaction", String.valueOf(transaction.getId()));
+                    transactions_object.put("charger", transaction.getChargeBoxId());
+                    transactions_object.put("tag", transaction.getOcppIdTag());
+                    transactions_object.put("connector", Integer.toString(transaction.getConnectorId()));
+                    transactions_object.put("iat_start", transaction.getStartTimestampDT().toString());
+                    transactions_object.put("energy_start", transaction.getStartValue());
+                    transactions_object.put("iat_last", transaction.getStartTimestampDT().toString());
+                    transactions_object.put("energy_last", transaction.getStartValue());
+                    transactions_object.put("consumption_last", "0");
+                    try { transactions_object.put("iat_stop", transaction.getStopTimestampDT().toString()); } catch (NullPointerException nullPointerException) {}
+                    try { transactions_object.put("reason_stop", transaction.getStopReason()); } catch (NullPointerException nullPointerException) {}
+                    try { transactions_object.put("actor_stop", transaction.getStopEventActor().toString()); } catch (NullPointerException nullPointerException) {}
+                    try {
+                        transactions_object.put("energy_stop", transaction.getStopValue());
+                        transactions_object.put("consumption_stop", Integer.toString(Integer.parseInt(transaction.getStopValue()) - Integer.parseInt(transaction.getStartValue())));
+                    } catch (NullPointerException nullPointerException) {}
+                    transactionRepository.getDetails(transaction
+                        .getId())
+                        .getValues()
+                        .stream()
+                        .parallel()
+                        .filter(meterValues -> meterValues.getMeasurand().equals("Energy.Active.Import.Register"))
+                        // .findFirst()
+                        .reduce((first, last) -> last)
+                        .ifPresent(meterValues -> {
+                            transactions_object.put("consumption_last", Integer.toString(Integer.parseInt(meterValues.getValue()) - Integer.parseInt(transaction.getStartValue())));
+                            transactions_object.put("energy_last", meterValues.getValue());
+                            transactions_object.put("iat_last", meterValues.getValueTimestamp().toString());
+                        });
+                        // .ifPresentOrElse((meterValues -> {
+                            // transactions_object.put("energy_last", meterValues.getValue());
+                            // transactions_object.put("iat_last", meterValues.getValueTimestamp().toString());
+                        // }), () -> System.out.println(""));
+                    response_array.put(transactions_object);
+                });
+            } else if (_response.equals("array")) {
+                transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
+                    response_array.put(String.valueOf(transaction.getId()));
+                });
+            }
             response.setStatus(HttpServletResponse.SC_OK);
-            writeOutput(response, "{}");
+            writeOutput(response, response_array.toString());
+        } else if (_transaction.equals("~")) {
+            TransactionQueryForm params = new TransactionQueryForm();
+            params.setType(TransactionQueryForm.QueryType.ACTIVE);
+            if (_response.equals("object")) {
+                transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
+                    JSONObject transactions_object = new JSONObject();
+                    transactions_object.put("version", "2.0.0-rc2");
+                    transactions_object.put("transaction", String.valueOf(transaction.getId()));
+                    transactions_object.put("charger", transaction.getChargeBoxId());
+                    transactions_object.put("tag", transaction.getOcppIdTag());
+                    transactions_object.put("connector", Integer.toString(transaction.getConnectorId()));
+                    transactions_object.put("iat_start", transaction.getStartTimestampDT().toString());
+                    transactions_object.put("energy_start", transaction.getStartValue());
+                    transactions_object.put("iat_last", transaction.getStartTimestampDT().toString());
+                    transactions_object.put("energy_last", transaction.getStartValue());
+                    transactions_object.put("consumption_last", "0");
+                    try { transactions_object.put("iat_stop", transaction.getStopTimestampDT().toString()); } catch (NullPointerException nullPointerException) {}
+                    try { transactions_object.put("reason_stop", transaction.getStopReason()); } catch (NullPointerException nullPointerException) {}
+                    try { transactions_object.put("actor_stop", transaction.getStopEventActor().toString()); } catch (NullPointerException nullPointerException) {}
+                    try {
+                        transactions_object.put("energy_stop", transaction.getStopValue());
+                        transactions_object.put("consumption_stop", Integer.toString(Integer.parseInt(transaction.getStopValue()) - Integer.parseInt(transaction.getStartValue())));
+                    } catch (NullPointerException nullPointerException) {}
+                    transactionRepository.getDetails(transaction
+                        .getId())
+                        .getValues()
+                        .stream()
+                        .parallel()
+                        .filter(meterValues -> meterValues.getMeasurand().equals("Energy.Active.Import.Register"))
+                        // .findFirst()
+                        .reduce((first, last) -> last)
+                        .ifPresent(meterValues -> {
+                            transactions_object.put("consumption_last", Integer.toString(Integer.parseInt(meterValues.getValue()) - Integer.parseInt(transaction.getStartValue())));
+                            transactions_object.put("energy_last", meterValues.getValue());
+                            transactions_object.put("iat_last", meterValues.getValueTimestamp().toString());
+                        });
+                        // .ifPresentOrElse((meterValues -> {
+                            // transactions_object.put("energy_last", meterValues.getValue());
+                            // transactions_object.put("iat_last", meterValues.getValueTimestamp().toString());
+                        // }), () -> System.out.println(""));
+                    response_array.put(transactions_object);
+                });
+            } else if (_response.equals("array")) {
+                transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
+                    response_array.put(String.valueOf(transaction.getId()));
+                });
+            }
+            response.setStatus(HttpServletResponse.SC_OK);
+            writeOutput(response, response_array.toString());
         } else {
+            if (_response.equals("array")) {
+                response_object.put("warning", "\"array\" response format is applicable only when returning multiple entries");
+            }
             try {
-                TransactionDetails thisTxDetails = transactionRepository.getDetails(Integer.parseInt(_transaction));
-                List<TransactionDetails.MeterValues> intermediateValues = thisTxDetails.getValues();
-                Transaction thisTx = thisTxDetails.getTransaction();
-                String energy_start = thisTx.getStartValue();
+                TransactionDetails transactionDetails = transactionRepository.getDetails(Integer.parseInt(_transaction));
+                List<TransactionDetails.MeterValues> intermediateValues = transactionDetails.getValues();
+                Transaction transaction = transactionDetails.getTransaction();
+                String energy_start = transaction.getStartValue();
                 String energy_last = energy_start;
-                String iat_last = thisTx.getStartTimestampDT().toString();
-                Integer consumption = 0;
+                String iat_last = transaction.getStartTimestampDT().toString();
+                Integer consumption_last = 0;
                 for (int intermediateValue = (intermediateValues.size() - 1); intermediateValue != -1; --intermediateValue) {
                     if (intermediateValues.get(intermediateValue).getMeasurand().equals("Energy.Active.Import.Register")) {
-                        consumption = Integer.parseInt(intermediateValues.get(intermediateValue).getValue()) - Integer.parseInt(energy_start);
+                        consumption_last = Integer.parseInt(intermediateValues.get(intermediateValue).getValue()) - Integer.parseInt(energy_start);
                         energy_last = intermediateValues.get(intermediateValue).getValue().toString();
                         iat_last = intermediateValues.get(intermediateValue).getValueTimestamp().toString();
                         break;
                     }
                 }
                 response.setStatus(HttpServletResponse.SC_OK);
-                response_payload_object.put("consumption", Integer.toString(consumption));
-                response_payload_object.put("transaction", _transaction);
-                response_payload_object.put("energy_start", energy_start);
-                response_payload_object.put("iat_start", thisTx.getStartTimestampDT().toString());
-                response_payload_object.put("energy_last", energy_last);
-                response_payload_object.put("iat_last", iat_last);
-                response_payload_object.put("charger", thisTx.getChargeBoxId());
-                response_payload_object.put("connector", Integer.toString(thisTx.getConnectorId()));
-                response_payload_object.put("tag", thisTx.getOcppIdTag());
-                writeOutput(response, response_payload_object.toString());
+                try { response_object.put("iat_stop", transaction.getStopTimestampDT().toString()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("reason_stop", transaction.getStopReason()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("actor_stop", transaction.getStopEventActor().toString()); } catch (NullPointerException nullPointerException) {}
+                try {
+                    response_object.put("energy_stop", transaction.getStopValue());
+                    response_object.put("consumption_stop", Integer.toString(Integer.parseInt(transaction.getStopValue()) - Integer.parseInt(energy_start)));
+                } catch (NullPointerException nullPointerException) {}
+                response_object.put("consumption_last", Integer.toString(consumption_last));
+                response_object.put("transaction", _transaction);
+                response_object.put("energy_start", energy_start);
+                response_object.put("iat_start", transaction.getStartTimestampDT().toString());
+                response_object.put("energy_last", energy_last);
+                response_object.put("iat_last", iat_last);
+                response_object.put("charger", transaction.getChargeBoxId());
+                response_object.put("connector", Integer.toString(transaction.getConnectorId()));
+                response_object.put("tag", transaction.getOcppIdTag());
+                writeOutput(response, response_object.toString());
             } catch (NullPointerException nullPointerException) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                writeOutput(response, "{}");
+                writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
             } catch (NumberFormatException numberFormatException) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                writeOutput(response, "{}");
+                writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
             }
         }
     }
 
-    @ApiOperation(httpMethod = "GET", value = "View the properties of a charger", notes = "", tags = {"charger", "properties", "2.0.0-rc1"})
+// TODO: Add parameter for return type i.e. JSONObject or JSONArray
+
+    @ApiOperation(httpMethod = "GET", value = "View the properties of a charger", notes = "", tags = {"charger", "properties", "2.0.0-rc2"})
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "OK"),
         @ApiResponse(code = 404, message = "Not Found"),
         @ApiResponse(code = 500, message = "Internal Error")
     })
     @GetMapping(value = "/charger")
-    public void get_charger(@ApiParam(required = true, value = "Name of the charger; '*' for all, '~' for active") @RequestParam(name = "charger") String _charger, HttpServletResponse response) throws IOException {
-        JSONObject response_payload_object = new JSONObject();
+    public void get_charger(@ApiParam(required = true, value = "Name of the charger; '*' for all, '~' for active") @RequestParam(name = "charger") String _charger, @ApiParam(allowableValues = "array, object", defaultValue = "object", required = false, value = "Format of the response when returning multiple entries—JSON Array/Object") @RequestParam(name = "response", defaultValue = "object") String _response, HttpServletResponse response) throws IOException {
+        JSONArray response_array = new JSONArray();
+        JSONObject response_object = new JSONObject();
+        response_object.put("version", "2.0.0-rc2");
         if (_charger.equals("*")) {
-            JSONArray charger_array = new JSONArray();
-            List<String> chargers = new ArrayList<>();
-            chargers = chargePointRepository.getChargeBoxIds().stream().collect(Collectors.toList());
-            for (int charger = 0; charger < chargers.size(); ++charger) {
-                charger_array.put(chargers.get(charger));
+            if (_response.equals("array")) {
+                List<String> chargers = new ArrayList<>();
+                chargers = chargePointRepository.getChargeBoxIds().stream().collect(Collectors.toList());
+                for (int charger = 0; charger < chargers.size(); ++charger) {
+                    response_array.put(chargers.get(charger));
+                }
+            } else if (_response.equals("object")) {
+// TODO
+                chargePointRepository.getChargeBoxIds().forEach(charger0 -> {
+                    System.out.println(charger0);
+                });
+                response_array.put(response_object);
             }
             response.setStatus(HttpServletResponse.SC_OK);
-            writeOutput(response, charger_array.toString());
+            writeOutput(response, response_array.toString());
         } else if (_charger.equals("~")) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            // List<Object> objList = new ArrayList<>();
-            // chargePointHelperService.getOcppJsonStatus().forEach(js -> {
-            //     List<String> strList = new ArrayList<>();
-            //     List<ConnectorStatus> unfilteredList = chargePointRepository.getChargePointConnectorStatus();
-            //     List<ConnectorStatus> filteredList = ConnectorStatusFilter.filterAndPreferZero(unfilteredList);
-            //     strList.add(js.getChargeBoxId());
-            //     strList.add(filteredList.stream().parallel().filter(cs -> js.getChargeBoxId().equals(cs.getChargeBoxId())).findAny().orElse(null).getStatus());
-            //     objList.add(strList);
-            // });
-            // writeOutput(response, serializeArray(objList));
-            JSONArray response_payload_array = new JSONArray();
-            chargePointHelperService.getOcppJsonStatus().forEach(js -> {
-                List<ConnectorStatus> unfilteredList = chargePointRepository.getChargePointConnectorStatus();
-                List<ConnectorStatus> filteredList = ConnectorStatusFilter.filterAndPreferZero(unfilteredList);
-                response_payload_object.put("charger", js.getChargeBoxId());
-                response_payload_object.put("status", filteredList.stream().parallel().filter(cs -> js.getChargeBoxId().equals(cs.getChargeBoxId())).findAny().orElse(null).getStatus());
-                response_payload_array.put(response_payload_object);
+// TODO: Consider evaluating response format outside loop
+            chargePointHelperService.getOcppJsonStatus().forEach(charger0 -> {
+                if (_response.equals("object")) {
+                    List<ConnectorStatus> status_connectors = ConnectorStatusFilter.filterAndPreferZero(chargePointRepository.getChargePointConnectorStatus());
+                    // AddressRecord addressRecord = charger0.getAddress();
+                    response_object.put("name_charger", charger0.getChargeBoxId());
+                    response_object.put("connection_start", charger0.getConnectedSinceDT().toString());
+                    // try { response_object.put("serialNumber_charger", charger0.getChargeBoxSerialNumber()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("model_charger", charger0.getChargePointModel()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("manufacturer_charger", charger0.getChargePointVendor()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("serialNumber_meter", charger0.getMeterSerialNumber()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("type_meter", charger0.getMeterType()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("note_charger", charger0.getNote()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("description_charger", charger0.getDescription()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("latitude_location", String.valueOf(charger0.getLocationLatitude())); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("longitude_location", String.valueOf(charger0.getLocationLongitude())); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("street_location", addressRecord.getStreet()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("number_location", addressRecord.getHouseNumber()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("country_location", addressRecord.getCountry()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("pincode_location", addressRecord.getZipCode()); } catch (NullPointerException nullPointerException) {}
+                    // try { response_object.put("city_location", addressRecord.getCity()); } catch (NullPointerException nullPointerException) {}
+                    response_object.put("status_connector", status_connectors.stream().parallel().filter(charger1 -> charger0.getChargeBoxId().equals(charger1.getChargeBoxId())).findAny().orElse(null).getStatus());
+                    // try { response_object.put("heartbeat_charger", charger0.getLastHeartbeatTimestamp()); } catch (NullPointerException nullPointerException) {}
+                    response_array.put(response_object);
+                } else if (_response.equals("array")) {
+                    response_array.put(charger0.getChargeBoxId());
+                }
             });
-            writeOutput(response, response_payload_array.toString());
+            response.setStatus(HttpServletResponse.SC_OK);
+            writeOutput(response, response_array.toString());
         } else {
-            List<String> chargerList = new ArrayList<>();
-            chargerList.add(_charger);
+            if (_response.equals("array")) {
+                response_object.put("warning", "\"array\" response format is applicable only when returning multiple entries");
+            }
+            List<String> chargers = new ArrayList<>();
+            chargers.add(_charger);
             try {
-                ChargePoint.Details cp = chargePointRepository.getDetails(chargePointRepository.getChargeBoxIdPkPair(chargerList).get(_charger));
-                List<ConnectorStatus> unfilteredList = chargePointRepository.getChargePointConnectorStatus();
-                List<ConnectorStatus> filteredList = ConnectorStatusFilter.filterAndPreferZero(unfilteredList);
-                AddressRecord addressRecord = cp.getAddress();
-                response_payload_object.put("name_charger", cp.getChargeBox().getChargeBoxId());
-                try { response_payload_object.put("serialNumber_charger", cp.getChargeBox().getChargeBoxSerialNumber()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("model_charger", cp.getChargeBox().getChargePointModel()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("manufacturer_charger", cp.getChargeBox().getChargePointVendor()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("serialNumber_meter", cp.getChargeBox().getMeterSerialNumber()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("type_meter", cp.getChargeBox().getMeterType()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("note", cp.getChargeBox().getNote()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("description", cp.getChargeBox().getDescription()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("latitude", cp.getChargeBox().getLocationLatitude()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("longitude", cp.getChargeBox().getLocationLongitude()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("street_address", addressRecord.getStreet()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("number_address", addressRecord.getHouseNumber()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("country_address", addressRecord.getCountry()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("pincode_address", addressRecord.getZipCode()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("city_address", addressRecord.getCity()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("status", filteredList.stream().parallel().filter(cs -> _charger.equals(cs.getChargeBoxId())).findAny().orElse(null).getStatus()); } catch (NullPointerException nullPointerException) {}
-                try { response_payload_object.put("heartbeat", cp.getChargeBox().getLastHeartbeatTimestamp()); } catch (NullPointerException nullPointerException) {}
+// TODO: Add support for other keys e.g. connectedSince, connectionDuration, connectedSinceDT
+                ChargePoint.Details charger = chargePointRepository.getDetails(chargePointRepository.getChargeBoxIdPkPair(chargers).get(_charger));
+                List<ConnectorStatus> status_connectors = ConnectorStatusFilter.filterAndPreferZero(chargePointRepository.getChargePointConnectorStatus());
+                AddressRecord addressRecord = charger.getAddress();
+                response_object.put("name_charger", charger.getChargeBox().getChargeBoxId());
+                try { response_object.put("serialNumber_charger", charger.getChargeBox().getChargeBoxSerialNumber()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("model_charger", charger.getChargeBox().getChargePointModel()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("manufacturer_charger", charger.getChargeBox().getChargePointVendor()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("serialNumber_meter", charger.getChargeBox().getMeterSerialNumber()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("type_meter", charger.getChargeBox().getMeterType()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("note_charger", charger.getChargeBox().getNote()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("description_charger", charger.getChargeBox().getDescription()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("latitude_location", String.valueOf(charger.getChargeBox().getLocationLatitude())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("longitude_location", String.valueOf(charger.getChargeBox().getLocationLongitude())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("street_location", addressRecord.getStreet()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("number_location", addressRecord.getHouseNumber()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("country_location", addressRecord.getCountry()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("pincode_location", addressRecord.getZipCode()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("city_location", addressRecord.getCity()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("status_connector", status_connectors.stream().parallel().filter(cs -> _charger.equals(cs.getChargeBoxId())).findAny().orElse(null).getStatus()); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("heartbeat_charger", charger.getChargeBox().getLastHeartbeatTimestamp()); } catch (NullPointerException nullPointerException) {}
                 response.setStatus(HttpServletResponse.SC_OK);
-                writeOutput(response, response_payload_object.toString());
+                writeOutput(response, response_object.toString());
             } catch (NullPointerException nullPointerException) {
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                writeOutput(response, "{}");
+                writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
             }
         }
     }
 
-    @ApiOperation(httpMethod = "GET", value = "View the properties of a charger's connector(s)", notes = "", tags = {"connector", "properties", "2.0.0-rc1"})
+    @ApiOperation(httpMethod = "GET", value = "View the properties of a charger's connector(s)", notes = "", tags = {"connector", "properties", "2.0.0-rc2"})
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "OK"),
         @ApiResponse(code = 500, message = "Internal Error")
@@ -357,41 +484,189 @@ public class APIController {
     @GetMapping(value = "/connector")
     public void get_connector(@ApiParam(required = true, value = "Name of the charger") @RequestParam(name = "charger") String _charger, HttpServletResponse response) throws IOException {
         List<Integer> connectors = chargePointRepository.getNonZeroConnectorIds(_charger);
-        JSONArray connectors_array = new JSONArray();
-        JSONObject response_payload_object = new JSONObject();
+        JSONArray response_array = new JSONArray();
+        JSONObject response_object = new JSONObject();
+        response_object.put("version", "2.0.0-rc2");
         for (int connector = 0; connector < connectors.size(); ++connector) {
-            connectors_array.put(Integer.toString(connectors.get(connector)));
+            response_array.put(Integer.toString(connectors.get(connector)));
         }
-        response_payload_object.put("charger", _charger);
-        response_payload_object.put("count_connectors", Integer.toString(connectors.size()));
-        response_payload_object.put("address_connectors", connectors_array);
+        response_object.put("name_charger", _charger);
+        response_object.put("count_connectors", Integer.toString(connectors.size()));
+        response_object.put("address_connectors", response_array);
         response.setStatus(HttpServletResponse.SC_OK);
-        writeOutput(response, response_payload_object.toString());
+        writeOutput(response, response_object.toString());
     }
 
-    @ApiOperation(httpMethod = "GET", value = "View the properties of a tag", notes = "", tags = {"tag", "properties", "2.0.0-rc1"})
+// TODO: Add parameter for return type i.e. JSONObject or JSONArray
+
+    @ApiOperation(httpMethod = "GET", value = "View the properties of a tag", notes = "", tags = {"tag", "properties", "2.0.0-rc2"})
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "OK"),
         @ApiResponse(code = 500, message = "Internal Error")
     })
     @GetMapping(value = "/tag")
-    public void get_tag(@ApiParam(required = true, value = "Only '*' supported") @RequestParam(name = "tag") String _tag, HttpServletResponse response) throws IOException {
+    public void get_tag(@ApiParam(required = true, value = "Only '*' supported") @RequestParam(name = "tag") String _tag, @ApiParam(allowableValues = "array, object", defaultValue = "object", required = false, value = "Format of the response when returning multiple entries—JSON Array/Object") @RequestParam(name = "response", defaultValue = "object") String _response, HttpServletResponse response) throws IOException {
+        JSONArray response_array = new JSONArray();
         if (_tag.equals("*")) {
-            JSONArray tag_array = new JSONArray();
-            List<String> tags = new ArrayList<>();
-            tags = ocppTagRepository.getIdTags().stream().collect(Collectors.toList());
-            for (int tag = 0; tag < tags.size(); ++tag) {
-                tag_array.put(tags.get(tag));
+            if (_response.equals("array")) {
+                ocppTagRepository.getIdTags().stream().forEach(tag -> response_array.put(tag));
+            } else if (_response.equals("object")) {
+                // List<String> tags = new ArrayList<>();
+                // tags = ocppTagRepository.getIdTags().stream().collect(Collectors.toList());
+                // for (int tag = 0; tag < tags.size(); ++tag) {
+                //     JSONObject tag_object = new JSONObject();
+                //     tag_object.put("tag", tags.get(tag));
+                //     tag_object.put("version", "2.0.0-rc2");
+                //     response_array.put(tag_object);
+                // }
+                ocppTagRepository.getOverview(new OcppTagQueryForm()).stream().forEach(tag -> System.out.println(tag.getIdTag()));
             }
             response.setStatus(HttpServletResponse.SC_OK);
-            writeOutput(response, tag_array.toString());
+            writeOutput(response, response_array.toString());
         } else {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            writeOutput(response, "{}");
+            writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+        }
+    }
+
+    @ApiOperation(httpMethod = "POST", value = "Create a new tag", notes = "", tags = {"tag", "properties", "2.0.0-rc2"})
+    @ApiResponses(value = {
+        @ApiResponse(code = 201, message = "Created"),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 409, message = "Conflict"),
+        @ApiResponse(code = 500, message = "Internal Error")
+    })
+    @PostMapping(value = "/tag")
+    public void post_tag(@RequestBody String _tag, HttpServletResponse response) throws IOException {
+        try {
+            HashMap<String, String> tag_object = objectMapper.readValue(_tag, HashMap.class);
+            String tag_string = tag_object.get("tag");
+            if (tag_string == null) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+            } else {
+                String parent_string = tag_object.get("parent");
+                if (parent_string != null) {
+                    // Optional<OcppTag.Overview> parent_tag = ocppTagRepository.getOverview(new OcppTagQueryForm()).stream().filter(o -> o.getIdTag().equals(_parent)).findFirst();
+                    // if (parent_string.isPresent()) {
+                    //     // TODO: Proceed to MaxActiveTransactionCount
+                    // } else {
+                    //     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    //     writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+                    // }
+                } else {
+                    Integer maxActiveTransactionCount = 1;
+                    try {
+                        maxActiveTransactionCount = Integer.parseInt(tag_object.get("MaxActiveTransactionCount"));
+                        String note = tag_object.get("note");
+                        if (note == null) note = "";
+                        if (parent_string == null) parent_string = "";
+                        JSONObject response_object = new JSONObject();
+                        response_object.put("tag", tag_string);
+                        response_object.put("MaxActiveTransactionCount", maxActiveTransactionCount.toString());
+                        response_object.put("note", note);
+                        response_object.put("parent", parent_string);
+                        OcppTagForm tag_form = new OcppTagForm();
+                        tag_form.setIdTag(tag_string);
+                        tag_form.setParentIdTag(parent_string);
+                        tag_form.setMaxActiveTransactionCount(maxActiveTransactionCount);
+                        tag_form.setNote(note);
+                        try {
+                            ocppTagRepository.addOcppTag(tag_form);
+                            response.setStatus(HttpServletResponse.SC_CREATED);
+                            writeOutput(response, response_object.toString());
+                        } catch (SteveException steveException) {
+                            response.setStatus(HttpServletResponse.SC_CONFLICT);
+                            response_object.put("response", "Tag must be unique");
+                            writeOutput(response, response_object.toString());
+                        } catch (Exception exception) {
+                            // exception.printStackTrace();
+                            response.setStatus(HttpServletResponse.SC_CONFLICT);
+                            writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+                        }
+                    } catch (NumberFormatException numberFormatException) {
+                        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+                    }
+                }
+            }
+        } catch (ClassCastException classCastException) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+        }
+    }
+
+    @ApiOperation(httpMethod = "DELETE", value = "Delete an unblocked, non-parent tag", notes = "", tags = {"tag", "properties", "2.0.0-rc2"})
+    @ApiResponses(value = {
+        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Error")
+    })
+    @DeleteMapping(value = "/tag")
+    public void delete_tag(@RequestParam("tag") String _tag, HttpServletResponse response) throws IOException {
+        Optional<OcppTag.Overview> tag = ocppTagRepository.getOverview(new OcppTagQueryForm()).stream().filter(o -> o.getIdTag().equals(_tag)).findFirst();
+        if (tag.isPresent()) {
+            if (tag.get().getParentOcppTagPk() != null) {
+                ocppTagRepository.deleteOcppTag(tag.get().getOcppTagPk());
+                response.setStatus(HttpServletResponse.SC_OK);
+                writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+            } else {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+            }
+        } else {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
         }
     }
 
 // Code break added by Anirudh
+
+    @ApiOperation(httpMethod = "PUT", value = "Update the properties of a tag", notes = "", tags = {"tag", "properties", "2.0.0-rc2"})
+    @ApiResponses(value = {
+        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 400, message = "Bad Request"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 500, message = "Internal Error")
+    })
+    @PutMapping(value = "/tag")
+    public void put_tag(@RequestParam("tag") String _tag, @RequestParam(name = "note", defaultValue = "") String _note, @RequestParam(name = "parent", defaultValue = "root") String _parent, @RequestParam(name = "MaxActiveTransactionCount", defaultValue = "1") String _MaxActiveTransactionCount, HttpServletResponse response) throws IOException {
+        Optional<OcppTag.Overview> tag = ocppTagRepository.getOverview(new OcppTagQueryForm()).stream().filter(o -> o.getIdTag().equals(_tag)).findFirst();
+        if (tag.isPresent()) {
+            // ocppTagRepository.getRecord(tag.get().getOcppTagPk()).getNote();
+            // ocppTagRepository.getRecord(tag.get().getOcppTagPk()).getParentIdTag();
+            // ocppTagRepository.getRecord(tag.get().getOcppTagPk()).getMaxActiveTransactionCount();
+            Optional<OcppTag.Overview> parent = ocppTagRepository.getOverview(new OcppTagQueryForm()).stream().filter(o -> o.getIdTag().equals(_parent)).findFirst();
+            if (parent.isPresent()) {
+                OcppTagForm tag_form = new OcppTagForm();
+                tag_form.setOcppTagPk(tag.get().getOcppTagPk());
+                tag_form.setParentIdTag(_parent);
+                tag_form.setMaxActiveTransactionCount(Integer.parseInt(_MaxActiveTransactionCount));
+                tag_form.setNote(_note);
+                try {
+                    ocppTagRepository.updateOcppTag(tag_form);
+                    response.setStatus(HttpServletResponse.SC_CREATED);
+                    // writeOutput(response, response_object.toString());
+                    writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+                } catch (SteveException steveException) {
+                    response.setStatus(HttpServletResponse.SC_CONFLICT);
+                    // response_object.put("response", "Tag must be unique");
+                    // writeOutput(response, response_object.toString());
+                    writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+                } catch (Exception exception) {
+                    // exception.printStackTrace();
+                    response.setStatus(HttpServletResponse.SC_CONFLICT);
+                    writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+                }
+            } else {
+                System.out.println("parent not present");
+            }
+        } else {
+            System.out.println("Tag not present");
+        }
+        writeOutput(response, "{\"version\":\"2.0.0-rc2\"}");
+    }
 
     @ApiOperation(httpMethod = "GET", value = "Start Transaction", notes = "INPUT: chargeBoxId\n\nRETURN: Start Transaction Parameters", tags = "1.0.1")
     @ApiResponses(value = {
@@ -416,33 +691,33 @@ public class APIController {
                 RequestResult result = (RequestResult) task.getResultMap().get(chargeBoxId);
                 if (result.getResponse() == null) {
                     response.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    // response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("connectorId", 1);
-                    response_payload_object.put("tag", "root");
-                    response_payload_object.put("status", "failed");
-                    response_payload_object.put("response", "Charger disconnected from the CMS");
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    // response_object.put("connectorId", 2);
+                    response_object.put("connectorId", 1);
+                    response_object.put("tag", "root");
+                    response_object.put("status", "failed");
+                    response_object.put("response", "Charger disconnected from the CMS");
+                    writeOutput(response, response_object.toString());
                 } else if (!result.getResponse().equals("Accepted")) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    // response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("connectorId", 1);
-                    response_payload_object.put("tag", "root");
-                    response_payload_object.put("status", "failed");
-                    response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    // response_object.put("connectorId", 2);
+                    response_object.put("connectorId", 1);
+                    response_object.put("tag", "root");
+                    response_object.put("status", "failed");
+                    response_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
+                    writeOutput(response, response_object.toString());
                 } else {
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    // response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("connectorId", 1);
-                    response_payload_object.put("tag", "root");
-                    response_payload_object.put("status", "created");
-                    response_payload_object.put("response", "Accepted");
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    // response_object.put("connectorId", 2);
+                    response_object.put("connectorId", 1);
+                    response_object.put("tag", "root");
+                    response_object.put("status", "created");
+                    response_object.put("response", "Accepted");
+                    writeOutput(response, response_object.toString());
                 }
             }
         } catch (NullPointerException nullPointerException) {
@@ -477,33 +752,33 @@ public class APIController {
                 RequestResult result = (RequestResult) task.getResultMap().get(chargeBoxId);
                 if (result.getResponse() == null) {
                     response.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    // response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("connectorId", 1);
-                    response_payload_object.put("tag", idTag);
-                    response_payload_object.put("status", "failed");
-                    response_payload_object.put("response", "Charger disconnected from the CMS");
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    // response_object.put("connectorId", 2);
+                    response_object.put("connectorId", 1);
+                    response_object.put("tag", idTag);
+                    response_object.put("status", "failed");
+                    response_object.put("response", "Charger disconnected from the CMS");
+                    writeOutput(response, response_object.toString());
                 } else if (!result.getResponse().equals("Accepted")) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    // response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("connectorId", 1);
-                    response_payload_object.put("tag", idTag);
-                    response_payload_object.put("status", "failed");
-                    response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    // response_object.put("connectorId", 2);
+                    response_object.put("connectorId", 1);
+                    response_object.put("tag", idTag);
+                    response_object.put("status", "failed");
+                    response_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
+                    writeOutput(response, response_object.toString());
                 } else {
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    // response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("connectorId", 1);
-                    response_payload_object.put("tag", idTag);
-                    response_payload_object.put("status", "created");
-                    response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    // response_object.put("connectorId", 2);
+                    response_object.put("connectorId", 1);
+                    response_object.put("tag", idTag);
+                    response_object.put("status", "created");
+                    response_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
+                    writeOutput(response, response_object.toString());
                 }
             }
         } catch (NullPointerException nullPointerException) {
@@ -522,19 +797,19 @@ public class APIController {
     //                         @PathVariable("transactionId") String transactionId,
     //                                   HttpServletResponse response) throws IOException {
     //     List<Integer> transactionIDs = transactionRepository.getActiveTransactionIds(chargeBoxId);
-    //     // TransactionDetails thisTxDetails = new TransactionDetails();
+    //     // TransactionDetails transactionDetails = new TransactionDetails();
     //     if (transactionIDs.size() > 0) {
     //         if (transactionIDs.get(transactionIDs.size() - 1) == Integer.parseInt(transactionId)) {
-    //             TransactionDetails thisTxDetails = transactionRepository.getDetails(Integer.parseInt(transactionId));
-    //             List<TransactionDetails.MeterValues> intermediateValues = thisTxDetails.getValues();
+    //             TransactionDetails transactionDetails = transactionRepository.getDetails(Integer.parseInt(transactionId));
+    //             List<TransactionDetails.MeterValues> intermediateValues = transactionDetails.getValues();
     //             System.out.println(intermediateValues.get(intermediateValues.size() - 1).getValue());
     //             writeOutput(response, "");
     //         } else {
     //             writeOutput(response, "");
     //         }
     //     } else {
-    //         TransactionDetails thisTxDetails = transactionRepository.getDetails(Integer.parseInt(transactionId));
-    //         List<TransactionDetails.MeterValues> intermediateValues = thisTxDetails.getValues();
+    //         TransactionDetails transactionDetails = transactionRepository.getDetails(Integer.parseInt(transactionId));
+    //         List<TransactionDetails.MeterValues> intermediateValues = transactionDetails.getValues();
     //         System.out.println(intermediateValues.get(intermediateValues.size() - 1).getValue());
     //         writeOutput(response, "");
     //     }
@@ -565,16 +840,16 @@ public class APIController {
             iat_last = iat_start;
         }
 
-        JSONObject response_payload_object = new JSONObject();
-        response_payload_object.put("transactionId", transactionId);
-        response_payload_object.put("chargeBoxId", charger);
-        response_payload_object.put("tag", tag);
-        response_payload_object.put("connectorId", connector);
-        response_payload_object.put("startValue", energy_start);
-        response_payload_object.put("startValueTimestamp", iat_start);
-        response_payload_object.put("lastValue", energy_last);
-        response_payload_object.put("lastValueTimestamp", iat_last);
-        writeOutput(response, response_payload_object.toString());
+        JSONObject response_object = new JSONObject();
+        response_object.put("transactionId", transactionId);
+        response_object.put("chargeBoxId", charger);
+        response_object.put("tag", tag);
+        response_object.put("connectorId", connector);
+        response_object.put("startValue", energy_start);
+        response_object.put("startValueTimestamp", iat_start);
+        response_object.put("lastValue", energy_last);
+        response_object.put("lastValueTimestamp", iat_last);
+        writeOutput(response, response_object.toString());
         //writeOutput(response, "{\"transactionId\":\"" + transactionId + "\",\"chargeBoxId\":\"" + charger + "\",\"tag\":\"" + tag + "\",\"connectorId\":\"" + connector + "\",\"startValue\":\"" + energy_start + "\",\"startValueTimestamp\":\"" + iat_start + "\",\"lastValue\":\"" + energy_last + "\",\"lastValueTimestamp\":\"" + iat_last + "\"}");
     }
 
@@ -598,7 +873,7 @@ public class APIController {
     //         RemoteStopTransactionParams params = new RemoteStopTransactionParams();
     //         List<Integer> transactionIDs = transactionRepository.getActiveTransactionIds(chargeBoxId);
 
-    //         JSONObject response_payload_object = new JSONObject();
+    //         JSONObject response_object = new JSONObject();
     //         for (int i = 0; i < transactionIDs.size(); i++) {
     //             TransactionDetails thisTxDetails = transactionRepository.getDetails(transactionIDs.get(i));
     //             Transaction thisTx = thisTxDetails.getTransaction();
@@ -607,38 +882,38 @@ public class APIController {
     //             startingDay = thisTx.getStartTimestampDT().dayOfMonth().get();
     //             if (transactionIDs.get(i) != 323) {
     //                 if (startingYear < switchOffYear) {
-    //                             response_payload_object.put(String.valueOf(i),transactionIDs.get(i));
+    //                             response_object.put(String.valueOf(i),transactionIDs.get(i));
     //                             transactionStopService.stop(transactionIDs.get(i));
     //                 }
     //                 else if (startingYear == switchOffYear) {
     //                     if (startingMonth < switchOffMonth) {
-    //                         response_payload_object.put(String.valueOf(i),transactionIDs.get(i));
+    //                         response_object.put(String.valueOf(i),transactionIDs.get(i));
     //                         transactionStopService.stop(transactionIDs.get(i));
     //                     }
     //                     else if (startingMonth == switchOffMonth) {
     //                         if (startingDay < switchOffDay) {
-    //                             response_payload_object.put(String.valueOf(i),transactionIDs.get(i));
+    //                             response_object.put(String.valueOf(i),transactionIDs.get(i));
     //                             transactionStopService.stop(transactionIDs.get(i));
     //                         }
     //                     }
     //                 }
     //             }
     //         }
-    //         response_payload_object.put("Task: ","Transaction Deletion");
-    //         response_payload_object.put("Task status: ", "Completed");
-    //         response_payload_object.put("chargeBoxId: ",chargeBoxId);
+    //         response_object.put("Task: ","Transaction Deletion");
+    //         response_object.put("Task status: ", "Completed");
+    //         response_object.put("chargeBoxId: ",chargeBoxId);
 
-    //         writeOutput(response, response_payload_object.toString());
+    //         writeOutput(response, response_object.toString());
 
     //     } catch (NullPointerException nullPointerException) {
     //         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-    //         JSONObject response_payload_object = new JSONObject();
-    //         response_payload_object.put("chargeBoxId", chargeBoxId);
-    //         response_payload_object.put("connectorId", 2);
-    //         response_payload_object.put("tag", "unknown");
-    //         response_payload_object.put("status", "failed");
-    //         response_payload_object.put("response", "Request invalid");
-    //         writeOutput(response, response_payload_object.toString());
+    //         JSONObject response_object = new JSONObject();
+    //         response_object.put("chargeBoxId", chargeBoxId);
+    //         response_object.put("connectorId", 2);
+    //         response_object.put("tag", "unknown");
+    //         response_object.put("status", "failed");
+    //         response_object.put("response", "Request invalid");
+    //         writeOutput(response, response_object.toString());
 
     //     }
     // }
@@ -655,26 +930,26 @@ public class APIController {
             TransactionDetails thisTxDetails = transactionRepository.getDetails(Integer.parseInt(transactionId));
             List<TransactionDetails.MeterValues> intermediateValues = thisTxDetails.getValues();
             Transaction thisTx = thisTxDetails.getTransaction();
-            JSONObject response_payload_object = new JSONObject();
+            JSONObject response_object = new JSONObject();
             String measurandValue = new String("Energy.Active.Import.Register");
             String energy_start = thisTx.getStartValue();
             for (int intermediateValue = (intermediateValues.size() - 1); intermediateValue != -1; --intermediateValue) {
                 if (measurandValue.equals(intermediateValues.get(intermediateValue).getMeasurand())) {
                     int meterReading = Integer.parseInt(intermediateValues.get(intermediateValue).getValue()) - Integer.parseInt(energy_start);
-                    response_payload_object.put("consumption", meterReading);
-                    response_payload_object.put("lastValue", intermediateValues.get(intermediateValue).getValue());
+                    response_object.put("consumption", meterReading);
+                    response_object.put("lastValue", intermediateValues.get(intermediateValue).getValue());
                     break;
                 }
             }
-            response_payload_object.put("transactionId", transactionId);
-            response_payload_object.put("startValue", energy_start);
-            writeOutput(response, response_payload_object.toString());
+            response_object.put("transactionId", transactionId);
+            response_object.put("startValue", energy_start);
+            writeOutput(response, response_object.toString());
         } catch (NullPointerException nullPointerException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            JSONObject response_payload_object = new JSONObject();
-            response_payload_object.put("status", "failed");
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            JSONObject response_object = new JSONObject();
+            response_object.put("status", "failed");
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
         }
     }
 
@@ -705,46 +980,46 @@ public class APIController {
     //                     transactionStopService.stop(transactionIDs);
     //                     // writeOutput(response, objectMapper.writeValueAsString(result.getResponse()));
 
-    //    //                     JSONObject response_payload_object = new JSONObject();
-    //                     response_payload_object.put("chargeBoxId", chargeBoxId);
-    //                     response_payload_object.put("connectorId", 2);
-    //                     response_payload_object.put("transactionId",transactionId);
-    //                     response_payload_object.put("status", "created");
-    //                     response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
-    //                     writeOutput(response, response_payload_object.toString());
+    //    //                     JSONObject response_object = new JSONObject();
+    //                     response_object.put("chargeBoxId", chargeBoxId);
+    //                     response_object.put("connectorId", 2);
+    //                     response_object.put("transactionId",transactionId);
+    //                     response_object.put("status", "created");
+    //                     response_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
+    //                     writeOutput(response, response_object.toString());
     //    //                     //writeOutput(response, "{\"chargeBoxId\":\"" + chargeBoxId + "\",\"connectorId\":\"2\",\"transactionId\":\"" + transactionId + "\",\"status\":\"created\",\"response\":" + objectMapper.writeValueAsString(result.getResponse()) + "}");
 
     //                 } else {
     //                 response.setStatus(HttpServletResponse.SC_CONFLICT);
-    //    //                 JSONObject response_payload_object = new JSONObject();
-    //                 response_payload_object.put("chargeBoxId", chargeBoxId);
-    //                 response_payload_object.put("connectorId", 2);
-    //                 response_payload_object.put("transactionId", transactionId);
-    //                 response_payload_object.put("status", "failed");
-    //                 response_payload_object.put("response", "Transaction-Charger mismatched");
-    //                 writeOutput(response, response_payload_object.toString());
+    //    //                 JSONObject response_object = new JSONObject();
+    //                 response_object.put("chargeBoxId", chargeBoxId);
+    //                 response_object.put("connectorId", 2);
+    //                 response_object.put("transactionId", transactionId);
+    //                 response_object.put("status", "failed");
+    //                 response_object.put("response", "Transaction-Charger mismatched");
+    //                 writeOutput(response, response_object.toString());
     //    //                 //writeOutput(response, "{\"chargeBoxId\":\"" + chargeBoxId + "\",\"connectorId\":\"2\",\"transactionId\":\"" + transactionId + "\",\"status\":\"failed\",\"response\":\"Transaction-Charger mismatched\"}");
     //             }
     //         } else {
     //             response.setStatus(HttpServletResponse.SC_CONFLICT);
-    //    //             JSONObject response_payload_object = new JSONObject();
-    //             response_payload_object.put("chargeBoxId", chargeBoxId);
-    //             response_payload_object.put("connectorId", 2);
-    //             response_payload_object.put("transactionId", transactionId);
-    //             response_payload_object.put("status", "failed");
-    //             response_payload_object.put("response", "Transactions inactive");
-    //             writeOutput(response, response_payload_object.toString());
+    //    //             JSONObject response_object = new JSONObject();
+    //             response_object.put("chargeBoxId", chargeBoxId);
+    //             response_object.put("connectorId", 2);
+    //             response_object.put("transactionId", transactionId);
+    //             response_object.put("status", "failed");
+    //             response_object.put("response", "Transactions inactive");
+    //             writeOutput(response, response_object.toString());
     //    //             writeOutput(response, "{\"chargeBoxId\":\"" + chargeBoxId + "\",\"connectorId\":\"2\",\"transactionId\":\"" + transactionId + "\",\"status\":\"failed\",\"response\":\"Transactions inactive\"}");
     //         }
     //     } catch (NullPointerException nullPointerException) {
     //         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-    //    //         JSONObject response_payload_object = new JSONObject();
-    //         response_payload_object.put("chargeBoxId", chargeBoxId);
-    //         response_payload_object.put("connectorId", 2);
-    //         response_payload_object.put("tag", "unknown");
-    //         response_payload_object.put("status", "failed");
-    //         response_payload_object.put("response", "Request invalid");
-    //         writeOutput(response, response_payload_object.toString());
+    //    //         JSONObject response_object = new JSONObject();
+    //         response_object.put("chargeBoxId", chargeBoxId);
+    //         response_object.put("connectorId", 2);
+    //         response_object.put("tag", "unknown");
+    //         response_object.put("status", "failed");
+    //         response_object.put("response", "Request invalid");
+    //         writeOutput(response, response_object.toString());
     //    //         //writeOutput(response, "{\"chargeBoxId\":\"" + chargeBoxId + "\",\"connectorId\":\"2\",\"tag\":\"unknown\",\"status\":\"failed\",\"response\":\"Request invalid\"}");
     //     }
     // }
@@ -774,42 +1049,42 @@ public class APIController {
                         }
                         RequestResult result = (RequestResult) task.getResultMap().get(chargeBoxId);
                         transactionStopService.stop(transactionIDs);
-                        JSONObject response_payload_object = new JSONObject();
-                        response_payload_object.put("chargeBoxId", chargeBoxId);
-                        response_payload_object.put("connectorId", 2);
-                        response_payload_object.put("transactionId", transactionId);
-                        response_payload_object.put("status", "created");
-                        response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
-                        writeOutput(response, response_payload_object.toString());
+                        JSONObject response_object = new JSONObject();
+                        response_object.put("chargeBoxId", chargeBoxId);
+                        response_object.put("connectorId", 2);
+                        response_object.put("transactionId", transactionId);
+                        response_object.put("status", "created");
+                        response_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
+                        writeOutput(response, response_object.toString());
                     } else {
                     response.setStatus(HttpServletResponse.SC_CONFLICT);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("transactionId", transactionId);
-                    response_payload_object.put("status", "failed");
-                    response_payload_object.put("response", "Transaction-Charger mismatched");
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    response_object.put("connectorId", 2);
+                    response_object.put("transactionId", transactionId);
+                    response_object.put("status", "failed");
+                    response_object.put("response", "Transaction-Charger mismatched");
+                    writeOutput(response, response_object.toString());
                 }
             } else {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
-                JSONObject response_payload_object = new JSONObject();
-                response_payload_object.put("chargeBoxId", chargeBoxId);
-                response_payload_object.put("connectorId", 2);
-                response_payload_object.put("transactionId", transactionId);
-                response_payload_object.put("status", "failed");
-                response_payload_object.put("response", "Transactions inactive");
-                writeOutput(response, response_payload_object.toString());
+                JSONObject response_object = new JSONObject();
+                response_object.put("chargeBoxId", chargeBoxId);
+                response_object.put("connectorId", 2);
+                response_object.put("transactionId", transactionId);
+                response_object.put("status", "failed");
+                response_object.put("response", "Transactions inactive");
+                writeOutput(response, response_object.toString());
             }
         } catch (NullPointerException nullPointerException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            JSONObject response_payload_object = new JSONObject();
-            response_payload_object.put("chargeBoxId", chargeBoxId);
-            response_payload_object.put("connectorId", 2);
-            response_payload_object.put("tag", "unknown");
-            response_payload_object.put("status", "failed");
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            JSONObject response_object = new JSONObject();
+            response_object.put("chargeBoxId", chargeBoxId);
+            response_object.put("connectorId", 2);
+            response_object.put("tag", "unknown");
+            response_object.put("status", "failed");
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
         }
     }
 
@@ -839,43 +1114,43 @@ public class APIController {
                     }
                     RequestResult result = (RequestResult) task.getResultMap().get(chargeBoxId);
                     transactionStopService.stop(transactionIDs);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("tag", "root");
-                    response_payload_object.put("status", "created");
-                    response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    response_object.put("connectorId", 2);
+                    response_object.put("tag", "root");
+                    response_object.put("status", "created");
+                    response_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
+                    writeOutput(response, response_object.toString());
                 } else {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("tag", "root");
-                    response_payload_object.put("status", "failed");
-                    response_payload_object.put("response", "Transaction-Tag mismatched");
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    response_object.put("connectorId", 2);
+                    response_object.put("tag", "root");
+                    response_object.put("status", "failed");
+                    response_object.put("response", "Transaction-Tag mismatched");
+                    writeOutput(response, response_object.toString());
                 }
             } else {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
                 response.setHeader("Access-Control-Allow-Origin", "*");
-                JSONObject response_payload_object = new JSONObject();
-                response_payload_object.put("chargeBoxId", chargeBoxId);
-                response_payload_object.put("connectorId", 2);
-                response_payload_object.put("tag", "root");
-                response_payload_object.put("status", "failed");
-                response_payload_object.put("response", "Transactions inactive");
-                writeOutput(response, response_payload_object.toString());
+                JSONObject response_object = new JSONObject();
+                response_object.put("chargeBoxId", chargeBoxId);
+                response_object.put("connectorId", 2);
+                response_object.put("tag", "root");
+                response_object.put("status", "failed");
+                response_object.put("response", "Transactions inactive");
+                writeOutput(response, response_object.toString());
             }
         } catch (NullPointerException nullPointerException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            JSONObject response_payload_object = new JSONObject();
-            response_payload_object.put("chargeBoxId", chargeBoxId);
-            response_payload_object.put("connectorId", 2);
-            response_payload_object.put("tag", "root");
-            response_payload_object.put("status", "failed");
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            JSONObject response_object = new JSONObject();
+            response_object.put("chargeBoxId", chargeBoxId);
+            response_object.put("connectorId", 2);
+            response_object.put("tag", "root");
+            response_object.put("status", "failed");
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
         }
     }
 
@@ -906,211 +1181,52 @@ public class APIController {
                     }
                     RequestResult result = (RequestResult) task.getResultMap().get(chargeBoxId);
                     transactionStopService.stop(transactionIDs);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("tag", ocpp_parent);
-                    response_payload_object.put("status", "created");
-                    response_payload_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    response_object.put("connectorId", 2);
+                    response_object.put("tag", ocpp_parent);
+                    response_object.put("status", "created");
+                    response_object.put("response", objectMapper.writeValueAsString(result.getResponse()));
+                    writeOutput(response, response_object.toString());
                 } else {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    JSONObject response_payload_object = new JSONObject();
-                    response_payload_object.put("chargeBoxId", chargeBoxId);
-                    response_payload_object.put("connectorId", 2);
-                    response_payload_object.put("tag", ocpp_parent);
-                    response_payload_object.put("status", "failed");
-                    response_payload_object.put("response", "Transaction-Tag mismatched");
-                    writeOutput(response, response_payload_object.toString());
+                    JSONObject response_object = new JSONObject();
+                    response_object.put("chargeBoxId", chargeBoxId);
+                    response_object.put("connectorId", 2);
+                    response_object.put("tag", ocpp_parent);
+                    response_object.put("status", "failed");
+                    response_object.put("response", "Transaction-Tag mismatched");
+                    writeOutput(response, response_object.toString());
                 }
             } else {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
                 response.setHeader("Access-Control-Allow-Origin", "*");
                 // writeOutput(response, objectMapper.writeValueAsString("No active transaction"));
 
-                JSONObject response_payload_object = new JSONObject();
-                response_payload_object.put("chargeBoxId", chargeBoxId);
-                response_payload_object.put("connectorId", 2);
-                response_payload_object.put("tag", ocpp_parent);
-                response_payload_object.put("status", "failed");
-                response_payload_object.put("response", "Transactions inactive");
-                writeOutput(response, response_payload_object.toString());
+                JSONObject response_object = new JSONObject();
+                response_object.put("chargeBoxId", chargeBoxId);
+                response_object.put("connectorId", 2);
+                response_object.put("tag", ocpp_parent);
+                response_object.put("status", "failed");
+                response_object.put("response", "Transactions inactive");
+                writeOutput(response, response_object.toString());
 
                 //writeOutput(response, "{\"chargeBoxId\":\"" + chargeBoxId + "\",\"connectorId\":\"2\",\"tag\":\"" + ocpp_parent + "\",\"status\":\"failed\",\"response\":\"Transactions inactive\"}");
             }
         } catch (NullPointerException nullPointerException) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
-            JSONObject response_payload_object = new JSONObject();
-            response_payload_object.put("chargeBoxId", chargeBoxId);
-            response_payload_object.put("connectorId", 2);
-            response_payload_object.put("tag", ocpp_parent);
-            response_payload_object.put("status", "failed");
-            response_payload_object.put("response", "Request invalid");
-            writeOutput(response, response_payload_object.toString());
+            JSONObject response_object = new JSONObject();
+            response_object.put("chargeBoxId", chargeBoxId);
+            response_object.put("connectorId", 2);
+            response_object.put("tag", ocpp_parent);
+            response_object.put("status", "failed");
+            response_object.put("response", "Request invalid");
+            writeOutput(response, response_object.toString());
 
             //writeOutput(response, "{\"chargeBoxId\":\"" + chargeBoxId + "\",\"connectorId\":\"2\",\"tag\":\"" + ocpp_parent + "\",\"status\":\"failed\",\"response\":\"Request invalid\"}");
         }
     }
-
-    // @ApiOperation(httpMethod = "GET", value = "", notes = "INPUT: NULL", tags = "1.0.1")
-    // @ApiResponses(value = {
-    //         @ApiResponse(code = 200, message = "OK"),
-    //         @ApiResponse(code = 500, message = "Internal Error")
-    // })
-    // @GetMapping("/user_login")
-    // public void getUserDetails(@RequestParam("email") String email,
-    //                            @RequestParam("id") String id,
-    //                            HttpServletResponse response) throws IOException {
-    //     Optional<User.Overview> user = userRepository
-    //             .getOverview(new UserQueryForm())
-    //             .stream()
-    //             .parallel()
-    //             .filter(usr -> usr.getEmail().equals(email))
-    //             .findFirst();
-    //     if (user.isPresent() && user.get().getOcppIdTag().equals(id)) {
-    //         String s = serializeArray("true");
-    //         writeOutput(response, s);
-    //     } else {
-    //         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-    //         writeOutput(response, serializeArray("false"));
-    //     }
-
-    // }
-
-    // @PutMapping("/addToken")
-    // public void putToken(@RequestParam("id") String ocpp_parent,
-    //                      @RequestParam("token") String token,
-    //                      @RequestParam(value = "note", required = false, defaultValue = " ") String note,
-    //                      HttpServletResponse response) throws IOException {
-    //     OcppTagForm newTag = new OcppTagForm();
-    //     newTag.setIdTag(token);
-    //     newTag.setParentIdTag(ocpp_parent);
-    //     if (note == null) {
-    //         note = "";
-    //     }
-    //     newTag.setNote(note);
-    //     try {
-    //         ocppTagRepository.addOcppTag(newTag);
-    //         writeOutput(response, serializeArray("Ok"));
-    //     } catch (Exception exception) {
-    //         exception.printStackTrace();
-    //         response.setStatus(HttpServletResponse.SC_CONFLICT);
-    //         writeOutput(response, serializeArray("Could not add new token"));
-    //     }
-    // }
-
-    // @ApiOperation(httpMethod = "GET", value = "", notes = "INPUT: Tag Id", tags = "1.0.1")
-    // @ApiResponses(value = {
-    //         @ApiResponse(code = 200, message = "OK"),
-    //         @ApiResponse(code = 500, message = "Internal Error")
-    // })
-    // @GetMapping("/getTokens")
-    // public void getTokens(@RequestParam("id") String ocpp_parent,
-    //                       HttpServletResponse response) throws IOException {
-    //     try {
-    //         List<List<String>> responseList = getTokenList(ocpp_parent);
-    //         writeOutput(response, serializeArray(responseList));
-    //     } catch (NullPointerException nullPointerException) {
-    //         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-    //     }
-    // }
-
-    // @DeleteMapping("/removeToken")
-    // public void removeToken(@RequestParam("tokenID") String token,
-    //                         HttpServletResponse response) throws IOException {
-    //     Optional<OcppTag.Overview> ocppTag = ocppTagRepository
-    //             .getOverview(new OcppTagQueryForm())
-    //             .stream()
-    //             .filter(o -> o.getIdTag().equals(token))
-    //             .findFirst();
-    //     // Only delete non parent ID tags
-    //     if (ocppTag.isPresent() && ocppTag.get().getParentOcppTagPk() != null) {
-    //         int ocppTagPk = ocppTag.get().getOcppTagPk();
-    //         ocppTagRepository.deleteOcppTag(ocppTagPk);
-    //         writeOutput(response, serializeArray("Ok, deleted."));
-    //     } else {
-    //         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-    //         writeOutput(response, serializeArray("Can't delete token."));
-    //     }
-
-    // }
-
-    // @ApiOperation(httpMethod = "GET", value = "", notes = "description", tags = "1.0.1")
-    // @ApiResponses(value = {
-    //         @ApiResponse(code = 200, message = "OK"),
-    //         @ApiResponse(code = 500, message = "Internal Error")
-    // })
-    // @GetMapping("/getStatistics")
-    // public void getStatistics(@RequestParam("tokenID") String token, @RequestParam("period") TransactionQueryForm.QueryPeriodType period
-    //         , @RequestParam(value = "allStatistics", required = false, defaultValue = "false") boolean allStatistics,
-    //                           HttpServletResponse response) throws IOException {
-    //     try {
-    //         TransactionQueryForm params = new TransactionQueryForm();
-    //         params.setPeriodType(period);
-    //         params.setType(TransactionQueryForm.QueryType.ALL);
-    //         List<String> ocppTagList = new ArrayList<>();
-    //         if (allStatistics) {
-    //             if (ocppTagRepository.getParentIdtag(token) != null) {
-    //                 token = ocppTagRepository.getParentIdtag(token);
-    //             }
-    //             // Get all Transactions of the token
-    //             // First get all Tags
-    //             String finalToken = token;
-    //             ocppTagList = ocppTagRepository.getIdTags()
-    //                     .stream()
-    //                     .filter(tag -> Objects.equals(ocppTagRepository.getParentIdtag(tag), finalToken))
-    //                     .collect(Collectors.toList());
-    //         }
-    //         if (!ocppTagList.contains(token)) {
-    //             ocppTagList.add(0, token);
-    //         }
-    //         Map<Integer, List<String>> transactionMap = new LinkedHashMap<>();
-    //         for (String tag : ocppTagList) {
-    //             params.setOcppIdTag(tag);
-    //             Map<Integer, List<String>> finalTransactionMap = transactionMap;
-    //             transactionRepository.getTransactions(params).stream()
-    //                     .parallel()
-    //                     .filter(transaction -> transaction.getStopTimestamp() != null && !transaction.getStopTimestamp().isEmpty())
-    //                     .forEach(transaction -> {
-    //                         List<String> transactionDetailList = new ArrayList<>();
-    //                         transactionDetailList.add(String.valueOf(transaction.getId()));
-    //                         transactionDetailList.add(transaction.getChargeBoxId());
-    //                         AddressRecord addressRecord = chargePointRepository.getDetails(transaction.getChargeBoxPk()).getAddress();
-    //                         String address = addressRecord.getStreet() + " " + addressRecord.getHouseNumber() + ", "
-    //                                 + addressRecord.getCountry() + " " + addressRecord.getZipCode() + " " + addressRecord.getCity();
-    //                         transactionDetailList.add(address);
-    //                         transactionDetailList.add(transaction.getOcppIdTag());
-    //                         transactionDetailList.add(transaction.getStartValue());
-    //                         transactionDetailList.add(transaction.getStartTimestampDT().toString());
-    //                         transactionDetailList.add(transaction.getStopTimestampDT().toString());
-    //                         transactionDetailList.add(transaction.getStopReason());
-    //                         transactionDetailList.add(transaction.getStopEventActor().toString());
-    //                         transactionDetailList.add(transaction.getStopValue());
-    //                         transactionRepository.getDetails(transaction
-    //                                 .getId())
-    //                                 .getValues()
-    //                                 .stream()
-    //                                 .parallel()
-    //                                 .filter(meterValues -> meterValues.getUnit() != null && !meterValues.getUnit().isEmpty())
-    //                                 .findFirst()
-    //                                 .ifPresentOrElse((meterValues -> transactionDetailList.add(meterValues.getUnit())), () -> transactionDetailList.add(""));
-    //                         finalTransactionMap.put(transaction.getId(), transactionDetailList);
-    //                     });
-    //         }
-    //         transactionMap = transactionMap.entrySet()
-    //                 .stream()
-    //                 .parallel()
-    //                 .sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
-    //                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-    //                         (e1, e2) -> e2, LinkedHashMap::new));
-    //         writeOutput(response, serializeArray(transactionMap));
-    //     } catch (NullPointerException nullPointerException) {
-    //         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-    //     } catch (Exception illegalArgumentException) {
-    //         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-    //     }
-    // }
 
     @RequestMapping(method = RequestMethod.OPTIONS, value = "/**")
     public void manageOptions(HttpServletResponse response) throws IOException {
@@ -1146,15 +1262,15 @@ public class APIController {
         return responseList;
     }
 
-    private String serializeArray(Object object) {
-        try {
-            return objectMapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
-            // As fallback return empty array, do not let the frontend hang
-            log.error("Error occurred during serialization of response. Returning empty array instead!", e);
-            return "[]";
-        }
-    }
+    // private String serializeArray(Object object) {
+    //     try {
+    //         return objectMapper.writeValueAsString(object);
+    //     } catch (JsonProcessingException e) {
+    //         // As fallback return empty array, do not let the frontend hang
+    //         log.error("Error occurred during serialization of response. Returning empty array instead!", e);
+    //         return "[]";
+    //     }
+    // }
 
     /**
      * We want to handle this JSON conversion locally, and do not want to register an application-wide
