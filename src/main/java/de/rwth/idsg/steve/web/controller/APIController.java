@@ -236,7 +236,11 @@ public class APIController {
         if (_transaction.equals("*")) {
             TransactionQueryForm params = new TransactionQueryForm();
             params.setType(TransactionQueryForm.QueryType.ALL);
-            if (_response.equals("object")) {
+            if (_response.equals("array")) {
+                transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
+                    response_array.put(String.valueOf(transaction.getId()));
+                });
+            } else if (_response.equals("object")) {
                 transactionRepository.getTransactions(params).stream().sorted(Comparator.comparingInt(Transaction::getId)).parallel().forEach(transaction -> {
                     JSONObject transactions_object = new JSONObject();
                     transactions_object.put("version", "2.0.0-rc2");
@@ -275,17 +279,17 @@ public class APIController {
                         // }), () -> System.out.println(""));
                     response_array.put(transactions_object);
                 });
-            } else if (_response.equals("array")) {
-                transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
-                    response_array.put(String.valueOf(transaction.getId()));
-                });
             }
             response.setStatus(HttpServletResponse.SC_OK);
             writeOutput(response, response_array.toString());
         } else if (_transaction.equals("~")) {
             TransactionQueryForm params = new TransactionQueryForm();
             params.setType(TransactionQueryForm.QueryType.ACTIVE);
-            if (_response.equals("object")) {
+            if (_response.equals("array")) {
+                transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
+                    response_array.put(String.valueOf(transaction.getId()));
+                });
+            } else if (_response.equals("object")) {
                 transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
                     JSONObject transactions_object = new JSONObject();
                     transactions_object.put("version", "2.0.0-rc2");
@@ -323,10 +327,6 @@ public class APIController {
                             // transactions_object.put("iat_last", meterValues.getValueTimestamp().toString());
                         // }), () -> System.out.println(""));
                     response_array.put(transactions_object);
-                });
-            } else if (_response.equals("array")) {
-                transactionRepository.getTransactions(params).stream().parallel().forEach(transaction -> {
-                    response_array.put(String.valueOf(transaction.getId()));
                 });
             }
             response.setStatus(HttpServletResponse.SC_OK);
@@ -409,10 +409,13 @@ public class APIController {
             response.setStatus(HttpServletResponse.SC_OK);
             writeOutput(response, response_array.toString());
         } else if (_charger.equals("~")) {
-// TODO: Consider evaluating response format outside loop
-            chargePointHelperService.getOcppJsonStatus().forEach(charger0 -> {
-                if (_response.equals("object")) {
-                    List<ConnectorStatus> status_connectors = ConnectorStatusFilter.filterAndPreferZero(chargePointRepository.getChargePointConnectorStatus());
+            List<ConnectorStatus> status_connectors = ConnectorStatusFilter.filterAndPreferZero(chargePointRepository.getChargePointConnectorStatus());
+            if (_response.equals("array")) {
+                chargePointHelperService.getOcppJsonStatus().forEach(charger0 -> {
+                    response_array.put(charger0.getChargeBoxId());
+                });
+            } else if (_response.equals("object")) {
+                chargePointHelperService.getOcppJsonStatus().forEach(charger0 -> {
                     // AddressRecord addressRecord = charger0.getAddress();
                     response_object.put("name_charger", charger0.getChargeBoxId());
                     response_object.put("connection_start", charger0.getConnectedSinceDT().toString());
@@ -433,10 +436,8 @@ public class APIController {
                     response_object.put("status_connector", status_connectors.stream().parallel().filter(charger1 -> charger0.getChargeBoxId().equals(charger1.getChargeBoxId())).findAny().orElse(null).getStatus());
                     // try { response_object.put("heartbeat_charger", charger0.getLastHeartbeatTimestamp()); } catch (NullPointerException nullPointerException) {}
                     response_array.put(response_object);
-                } else if (_response.equals("array")) {
-                    response_array.put(charger0.getChargeBoxId());
-                }
-            });
+                });
+            }
             response.setStatus(HttpServletResponse.SC_OK);
             writeOutput(response, response_array.toString());
         } else {
@@ -460,6 +461,13 @@ public class APIController {
                 try { response_object.put("description_charger", charger.getChargeBox().getDescription()); } catch (NullPointerException nullPointerException) {}
                 try { response_object.put("latitude_location", String.valueOf(charger.getChargeBox().getLocationLatitude())); } catch (NullPointerException nullPointerException) {}
                 try { response_object.put("longitude_location", String.valueOf(charger.getChargeBox().getLocationLongitude())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("ICCID", String.valueOf(charger.getChargeBox().getIccid())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("IMSI", String.valueOf(charger.getChargeBox().getImsi())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("timestamp_firmware", String.valueOf(charger.getChargeBox().getFwUpdateTimestamp())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("version_firmware", String.valueOf(charger.getChargeBox().getFwVersion())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("status_firmware", String.valueOf(charger.getChargeBox().getFwUpdateStatus())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("protocol", String.valueOf(charger.getChargeBox().getOcppProtocol())); } catch (NullPointerException nullPointerException) {}
+                try { response_object.put("registration", String.valueOf(charger.getChargeBox().getRegistrationStatus())); } catch (NullPointerException nullPointerException) {}
                 try { response_object.put("street_location", addressRecord.getStreet()); } catch (NullPointerException nullPointerException) {}
                 try { response_object.put("number_location", addressRecord.getHouseNumber()); } catch (NullPointerException nullPointerException) {}
                 try { response_object.put("country_location", addressRecord.getCountry()); } catch (NullPointerException nullPointerException) {}
