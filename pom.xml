@@ -35,7 +35,7 @@
         <jooq.version>3.16.7</jooq.version>
         <cxf.version>3.5.3</cxf.version>
         <spring.version>5.3.22</spring.version>
-        <spring.security.version>5.7.2</spring.security.version>
+        <spring.security.version>5.7.3</spring.security.version>
         <mysql.jdbc.version>8.0.30</mysql.jdbc.version>
         <jetty.version>10.0.11</jetty.version>
         <lombok.version>1.18.24</lombok.version>
@@ -184,7 +184,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.17.0</version>
+                <version>3.19.0</version>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -205,7 +205,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>3.2.0</version>
                 <configuration>
                     <configLocation>${basedir}/src/main/resources/checkstyle.xml</configLocation>
                 </configuration>
@@ -480,9 +480,9 @@
             <version>2.0</version>
         </dependency>
         <dependency>
-            <groupId>com.github.RWTH-i5-IDSG</groupId>
+            <groupId>com.github.steve-community</groupId>
             <artifactId>ocpp-jaxb</artifactId>
-            <version>0.0.1</version>
+            <version>0.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.sun.mail</groupId>
@@ -505,7 +505,7 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.11.0</version>
+            <version>2.11.1</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate.validator</groupId>
@@ -575,7 +575,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
+            <artifactId>log4j-slf4j18-impl</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -585,12 +585,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.36</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jcl-over-slf4j</artifactId>
-            <version>1.7.36</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.lmax</groupId>
@@ -714,5 +714,10 @@
             <version>1.29</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.owasp.encoder</groupId>
+            <artifactId>encoder</artifactId>
+            <version>1.2.3</version>
+        </dependency>
     </dependencies>
 </project>
